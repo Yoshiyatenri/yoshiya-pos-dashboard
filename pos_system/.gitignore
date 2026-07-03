@@ -1,0 +1,8 @@
+config.json
+pos_data.db
+downloads/
+logs/
+__pycache__/
+*.pyc
+.streamlit/secrets.toml
+debug_html/

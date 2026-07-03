@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ログ・一時ファイル
+*.log
+
+# 認証情報を含む設定ファイル（config.jsonにハードコードしないルール）
+売上管理/seisan_config.json
+SNS/config.json
+
+# 個人用ローカル設定
+.claude/settings.local.json
