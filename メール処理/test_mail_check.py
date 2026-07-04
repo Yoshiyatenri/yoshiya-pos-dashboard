@@ -1,5 +1,6 @@
+import csv
 import json
-from mail_check import load_config, load_processed_uids, save_processed_uids, match_keywords
+from mail_check import load_config, load_processed_uids, save_processed_uids, match_keywords, append_log, CSV_FIELDNAMES
 
 
 def test_load_config_reads_json_file(tmp_path):
@@ -42,3 +43,31 @@ def test_match_keywords_returns_empty_when_no_match():
     result = match_keywords("いつもお世話になっております", ["至急", "締め切り"])
 
     assert result == []
+
+
+def test_append_log_writes_header_on_first_call(tmp_path):
+    path = tmp_path / "mail_check_log.csv"
+    row = {name: f"値-{name}" for name in CSV_FIELDNAMES}
+
+    append_log(row, str(path))
+
+    with open(path, encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    assert reader.fieldnames == CSV_FIELDNAMES
+    assert rows == [row]
+
+
+def test_append_log_appends_without_duplicate_header(tmp_path):
+    path = tmp_path / "mail_check_log.csv"
+    row1 = {name: "1" for name in CSV_FIELDNAMES}
+    row2 = {name: "2" for name in CSV_FIELDNAMES}
+
+    append_log(row1, str(path))
+    append_log(row2, str(path))
+
+    with open(path, encoding="utf-8-sig") as f:
+        rows = list(csv.DictReader(f))
+
+    assert len(rows) == 2
