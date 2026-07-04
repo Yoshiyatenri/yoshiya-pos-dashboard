@@ -13,3 +13,6 @@ SNS/config.json
 
 # 個人用ローカル設定
 .claude/settings.local.json
+
+# サブエージェント駆動開発の進捗スクラッチ
+.superpowers/
