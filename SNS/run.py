@@ -12,14 +12,23 @@ BASE_DIR = Path(__file__).parent
 CONFIG_PATH = BASE_DIR / "config.json"
 DATA_DIR = BASE_DIR / "data"
 REPORTS_DIR = DATA_DIR / "reports"
+API_KEY_PLACEHOLDER = "ここにClaude APIキーを入力してください"
 
 
 def main():
     DATA_DIR.mkdir(exist_ok=True)
     REPORTS_DIR.mkdir(exist_ok=True)
 
-    with open(CONFIG_PATH, encoding="utf-8") as f:
-        config = json.load(f)
+    try:
+        with open(CONFIG_PATH, encoding="utf-8") as f:
+            config = json.load(f)
+    except FileNotFoundError:
+        print(f"config.jsonが見つかりません: {CONFIG_PATH}")
+        print("SNSフォルダー内にconfig.jsonを作成してください。")
+        return
+    except json.JSONDecodeError as error:
+        print(f"config.jsonの内容が正しいJSON形式ではありません: {error}")
+        return
 
     today = date.today().strftime("%Y%m%d")
     csv_path = DATA_DIR / f"raw_{today}.csv"
@@ -33,8 +42,16 @@ def main():
     records = load_records(csv_path)
     summary = summarize(records)
 
-    print("Claude APIで投稿企画案を生成しています...")
-    plan_ideas = generate_plan_ideas(summary, config["anthropic_api_key"])
+    api_key = config.get("anthropic_api_key", "")
+    if not records:
+        print("投稿データが1件も取得できなかったため、企画案の生成をスキップします。")
+        plan_ideas = []
+    elif not api_key or api_key == API_KEY_PLACEHOLDER:
+        print("Claude APIキーが設定されていないため、企画案の生成をスキップします。")
+        plan_ideas = []
+    else:
+        print("Claude APIで投稿企画案を生成しています...")
+        plan_ideas = generate_plan_ideas(summary, api_key)
 
     create_report(summary, plan_ideas, str(report_path))
     print(f"レポートを出力しました: {report_path}")

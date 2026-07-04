@@ -15,9 +15,11 @@ def create_report(summary, plan_ideas, output_path):
         trend_sheet.append([tag, count])
 
     trend_sheet.append([])
-    trend_sheet.append(["いいね数上位の投稿", "いいね数", "URL"])
+    trend_sheet.append(["いいね数上位の投稿", "いいね数", "投稿日", "URL"])
     for video in summary["top_videos_by_likes"]:
-        trend_sheet.append([video["caption"], video["likes"], video["url"]])
+        trend_sheet.append(
+            [video["caption"], video["likes"], video.get("posted_at", ""), video["url"]]
+        )
 
     plan_sheet = wb.create_sheet("投稿企画案")
     plan_sheet.append(["企画案"])

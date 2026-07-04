@@ -37,5 +37,4 @@ def summarize(records, top_n=10):
         "video_count": len(records),
         "top_hashtags": top_hashtags(records, top_n),
         "top_videos_by_likes": top_videos(records, 5, "likes"),
-        "keywords": sorted({r["keyword"] for r in records}),
     }

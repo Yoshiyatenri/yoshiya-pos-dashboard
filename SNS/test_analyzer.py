@@ -3,7 +3,6 @@ from analyzer import top_hashtags, top_videos, summarize
 SAMPLE_RECORDS = [
     {
         "url": "https://www.tiktok.com/@a/video/1",
-        "keyword": "駄菓子",
         "caption": "うまい棒の食べ比べ",
         "hashtags": ["駄菓子", "うまい棒"],
         "likes": 100,
@@ -14,7 +13,6 @@ SAMPLE_RECORDS = [
     },
     {
         "url": "https://www.tiktok.com/@b/video/2",
-        "keyword": "駄菓子",
         "caption": "駄菓子屋開封動画",
         "hashtags": ["駄菓子", "開封"],
         "likes": 300,
@@ -25,7 +23,6 @@ SAMPLE_RECORDS = [
     },
     {
         "url": "https://www.tiktok.com/@c/video/3",
-        "keyword": "うまい棒",
         "caption": "うまい棒コンプリート",
         "hashtags": ["うまい棒"],
         "likes": 50,
@@ -54,6 +51,5 @@ def test_top_videos_sorts_by_likes_descending():
 def test_summarize_returns_expected_keys():
     summary = summarize(SAMPLE_RECORDS, top_n=5)
     assert summary["video_count"] == 3
-    assert summary["keywords"] == ["うまい棒", "駄菓子"]
     assert summary["top_hashtags"][0] == ("駄菓子", 2)
     assert len(summary["top_videos_by_likes"]) == 3

@@ -50,5 +50,4 @@ def test_parse_item_converts_raw_item_to_record():
     assert record["views"] == 100
     assert record["comments"] == 2
     assert record["shares"] == 1
-    assert record["keyword"] == ""
     assert record["posted_at"] == "2025-06-15"

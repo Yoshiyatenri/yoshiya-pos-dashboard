@@ -59,7 +59,6 @@ def parse_item(item, url):
 
     return {
         "url": url,
-        "keyword": "",
         "caption": caption,
         "hashtags": extract_hashtags(caption),
         "likes": int(stats.get("diggCount", 0)),
@@ -103,7 +102,7 @@ def collect_all(config):
 def save_csv(records, csv_path):
     """収集した投稿データをCSVファイルに保存する。"""
     fieldnames = [
-        "url", "keyword", "caption", "hashtags",
+        "url", "caption", "hashtags",
         "likes", "views", "comments", "shares", "posted_at",
     ]
     with open(csv_path, "w", encoding="utf-8-sig", newline="") as f:
