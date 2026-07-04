@@ -1,5 +1,5 @@
 import json
-from mail_check import load_config, load_processed_uids, save_processed_uids
+from mail_check import load_config, load_processed_uids, save_processed_uids, match_keywords
 
 
 def test_load_config_reads_json_file(tmp_path):
@@ -30,3 +30,15 @@ def test_save_and_load_processed_uids_roundtrip(tmp_path):
     result = load_processed_uids(str(path))
 
     assert result == {"1", "2", "3"}
+
+
+def test_match_keywords_returns_matched_list():
+    result = match_keywords("【至急】オンライン集計のお願い", ["至急", "締め切り", "オンライン集計"])
+
+    assert result == ["至急", "オンライン集計"]
+
+
+def test_match_keywords_returns_empty_when_no_match():
+    result = match_keywords("いつもお世話になっております", ["至急", "締め切り"])
+
+    assert result == []

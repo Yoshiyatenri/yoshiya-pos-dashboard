@@ -24,3 +24,8 @@ def save_processed_uids(uids, path=PROCESSED_UIDS_PATH):
     """処理済みUIDの集合を保存する。"""
     with open(path, "w", encoding="utf-8") as f:
         json.dump(sorted(uids), f, ensure_ascii=False, indent=2)
+
+
+def match_keywords(subject, keywords):
+    """件名に含まれるキーワードのリストを返す（部分一致）。"""
+    return [kw for kw in keywords if kw in subject]
