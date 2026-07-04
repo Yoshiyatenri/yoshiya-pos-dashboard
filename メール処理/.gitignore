@@ -1,0 +1,6 @@
+config.json
+processed_uids.json
+mail_check_log.csv
+__pycache__/
+*.pyc
+.pytest_cache/
