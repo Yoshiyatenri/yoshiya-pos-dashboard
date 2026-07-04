@@ -184,28 +184,31 @@ def main():
         matched_count = 0
 
         for uid_str in new_uids:
-            uid = uid_str.encode()
-            header = fetch_header(conn, uid)
-            matched = match_keywords(header["subject"], config["keywords"])
+            try:
+                uid = uid_str.encode()
+                header = fetch_header(conn, uid)
+                matched = match_keywords(header["subject"], config["keywords"])
 
-            if matched:
-                body = fetch_body(conn, uid)
-                judgement = judge_urgency(
-                    header["subject"], body, config["anthropic_api_key"]
-                )
-                append_log({
-                    "実行日時": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "メール日時": header["date"],
-                    "差出人": header["from"],
-                    "件名": header["subject"],
-                    "ヒットキーワード": "・".join(matched),
-                    "緊急度": judgement["urgency"],
-                    "返信要否": judgement["reply_needed"],
-                    "AI判断理由": judgement["reason"],
-                })
-                matched_count += 1
-
-            processed.add(uid_str)
+                if matched:
+                    body = fetch_body(conn, uid)
+                    judgement = judge_urgency(
+                        header["subject"], body, config["anthropic_api_key"]
+                    )
+                    append_log({
+                        "実行日時": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "メール日時": header["date"],
+                        "差出人": header["from"],
+                        "件名": header["subject"],
+                        "ヒットキーワード": "・".join(matched),
+                        "緊急度": judgement["urgency"],
+                        "返信要否": judgement["reply_needed"],
+                        "AI判断理由": judgement["reason"],
+                    })
+                    matched_count += 1
+            except Exception as error:
+                logger.error(f"メール処理に失敗しました: uid={uid_str}: {error}")
+            finally:
+                processed.add(uid_str)
 
         save_processed_uids(processed)
         logger.info(
