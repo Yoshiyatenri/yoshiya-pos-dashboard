@@ -3,12 +3,17 @@ import csv
 import email
 import imaplib
 import json
+import logging
 import os
 import re
+from datetime import datetime
 from email.header import decode_header
+
+from ai_judge import judge_urgency
 
 CONFIG_PATH = "config.json"
 PROCESSED_UIDS_PATH = "processed_uids.json"
+LOG_FILE_PATH = "mail_check.log"
 
 
 def load_config(path=CONFIG_PATH):
@@ -143,3 +148,72 @@ def fetch_body(conn, uid):
     raw_message = data[0][1]
     msg = email.message_from_bytes(raw_message)
     return _extract_text_from_message(msg)
+
+
+def _setup_logger():
+    logger = logging.getLogger("mail_check")
+    logger.setLevel(logging.INFO)
+    if not logger.handlers:
+        handler = logging.FileHandler(LOG_FILE_PATH, encoding="utf-8")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+        logger.addHandler(handler)
+    return logger
+
+
+def main():
+    """メールチェックのエントリポイント。"""
+    logger = _setup_logger()
+    config = load_config()
+
+    try:
+        conn = connect_imap(config)
+    except Exception as error:
+        logger.error(f"IMAP接続に失敗しました: {error}")
+        return
+
+    try:
+        all_uids = {uid.decode() for uid in fetch_all_uids(conn)}
+        processed = load_processed_uids()
+
+        if processed is None:
+            save_processed_uids(all_uids)
+            logger.info(f"初回実行: 既存メール{len(all_uids)}件をベースライン登録しました")
+            return
+
+        new_uids = sorted(all_uids - processed, key=int)
+        matched_count = 0
+
+        for uid_str in new_uids:
+            uid = uid_str.encode()
+            header = fetch_header(conn, uid)
+            matched = match_keywords(header["subject"], config["keywords"])
+
+            if matched:
+                body = fetch_body(conn, uid)
+                judgement = judge_urgency(
+                    header["subject"], body, config["anthropic_api_key"]
+                )
+                append_log({
+                    "実行日時": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "メール日時": header["date"],
+                    "差出人": header["from"],
+                    "件名": header["subject"],
+                    "ヒットキーワード": "・".join(matched),
+                    "緊急度": judgement["urgency"],
+                    "返信要否": judgement["reply_needed"],
+                    "AI判断理由": judgement["reason"],
+                })
+                matched_count += 1
+
+            processed.add(uid_str)
+
+        save_processed_uids(processed)
+        logger.info(
+            f"実行完了: 新着{len(new_uids)}件中{matched_count}件がキーワードに該当しました"
+        )
+    finally:
+        conn.logout()
+
+
+if __name__ == "__main__":
+    main()
