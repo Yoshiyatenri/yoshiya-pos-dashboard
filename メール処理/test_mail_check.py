@@ -1,7 +1,8 @@
 import csv
 import json
+import base64
 from unittest.mock import MagicMock
-from mail_check import load_config, load_processed_uids, save_processed_uids, match_keywords, append_log, CSV_FIELDNAMES, fetch_all_uids
+from mail_check import load_config, load_processed_uids, save_processed_uids, match_keywords, append_log, CSV_FIELDNAMES, fetch_all_uids, fetch_header, fetch_body
 
 
 def test_load_config_reads_json_file(tmp_path):
@@ -93,3 +94,49 @@ def test_fetch_all_uids_raises_on_error_status():
         assert False, "例外が発生するはず"
     except RuntimeError:
         pass
+
+
+def test_fetch_header_parses_subject_from_date():
+    encoded_subject = base64.b64encode("至急のご連絡".encode("utf-8")).decode("ascii")
+    raw_header = (
+        f"Subject: =?utf-8?B?{encoded_subject}?=\r\n"
+        "From: Head Office <honbu@example.com>\r\n"
+        "Date: Sat, 04 Jul 2026 09:00:00 +0900\r\n"
+    ).encode("utf-8")
+    fake_conn = MagicMock()
+    fake_conn.uid.return_value = ("OK", [(b"1 (BODY[HEADER.FIELDS])", raw_header)])
+
+    result = fetch_header(fake_conn, b"1")
+
+    assert result["subject"] == "至急のご連絡"
+    assert "honbu@example.com" in result["from"]
+    assert result["date"] == "Sat, 04 Jul 2026 09:00:00 +0900"
+
+
+def test_fetch_body_returns_plain_text():
+    raw_message = (
+        "Content-Type: text/plain; charset=utf-8\r\n"
+        "\r\n"
+        "本文のテキストです。"
+    ).encode("utf-8")
+    fake_conn = MagicMock()
+    fake_conn.uid.return_value = ("OK", [(b"1 (BODY[])", raw_message)])
+
+    result = fetch_body(fake_conn, b"1")
+
+    assert result == "本文のテキストです。"
+
+
+def test_fetch_body_strips_html_tags_when_only_html_available():
+    raw_message = (
+        "Content-Type: text/html; charset=utf-8\r\n"
+        "\r\n"
+        "<html><body><p>本文</p></body></html>"
+    ).encode("utf-8")
+    fake_conn = MagicMock()
+    fake_conn.uid.return_value = ("OK", [(b"1 (BODY[])", raw_message)])
+
+    result = fetch_body(fake_conn, b"1")
+
+    assert "<" not in result
+    assert "本文" in result
