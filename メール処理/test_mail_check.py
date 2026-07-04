@@ -1,6 +1,7 @@
 import csv
 import json
-from mail_check import load_config, load_processed_uids, save_processed_uids, match_keywords, append_log, CSV_FIELDNAMES
+from unittest.mock import MagicMock
+from mail_check import load_config, load_processed_uids, save_processed_uids, match_keywords, append_log, CSV_FIELDNAMES, fetch_all_uids
 
 
 def test_load_config_reads_json_file(tmp_path):
@@ -71,3 +72,24 @@ def test_append_log_appends_without_duplicate_header(tmp_path):
         rows = list(csv.DictReader(f))
 
     assert len(rows) == 2
+
+
+def test_fetch_all_uids_returns_uid_list():
+    fake_conn = MagicMock()
+    fake_conn.uid.return_value = ("OK", [b"1 2 3"])
+
+    result = fetch_all_uids(fake_conn)
+
+    assert result == [b"1", b"2", b"3"]
+    fake_conn.uid.assert_called_once_with("search", None, "ALL")
+
+
+def test_fetch_all_uids_raises_on_error_status():
+    fake_conn = MagicMock()
+    fake_conn.uid.return_value = ("NO", [b""])
+
+    try:
+        fetch_all_uids(fake_conn)
+        assert False, "例外が発生するはず"
+    except RuntimeError:
+        pass

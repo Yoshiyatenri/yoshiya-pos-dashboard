@@ -1,5 +1,6 @@
 """IMAPで新着メールをチェックし、件名キーワードに該当したメールをAI判定してログに残す。"""
 import csv
+import imaplib
 import json
 import os
 
@@ -54,3 +55,19 @@ def append_log(row, path=LOG_CSV_PATH):
         if not file_exists:
             writer.writeheader()
         writer.writerow(row)
+
+
+def connect_imap(config):
+    """IMAP4でログインし、INBOXを選択した接続を返す。"""
+    conn = imaplib.IMAP4(config["imap_host"], config["imap_port"])
+    conn.login(config["user"], config["password"])
+    conn.select("INBOX")
+    return conn
+
+
+def fetch_all_uids(conn):
+    """INBOX内の全メールUIDを取得する。"""
+    status, data = conn.uid("search", None, "ALL")
+    if status != "OK":
+        raise RuntimeError(f"UID検索に失敗しました: status={status}")
+    return data[0].split()
