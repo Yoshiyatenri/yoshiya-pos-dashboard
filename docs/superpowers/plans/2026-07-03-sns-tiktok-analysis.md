@@ -785,6 +785,14 @@ git commit -m "feat(SNS): run.pyでパイプライン全体を結合"
 
 ## 完了確認
 
-- [ ] `cd SNS && python -m pytest -v` で全テストがPASSする
-- [ ] `python run.py` を実行し、Excelレポートが生成され、内容が実用的である
-- [ ] `SNS/config.json`と`SNS/data/`がGit管理対象外になっている（`git status`で確認）
+- [x] `cd SNS && python -m pytest -v` で全テストがPASSする
+- [x] `python run.py` を実行し、Excelレポートが生成され、内容が実用的である
+- [x] `SNS/config.json`と`SNS/data/`がGit管理対象外になっている（`git status`で確認）
+
+## 実装完了後の最終レビューによる修正（2026-07-04）
+
+全タスク完了後の全体コードレビュー（commit 0ec12de時点）で以下3点の指摘があり、修正済み（commit 78788a7）:
+
+1. **投稿日の未活用**: `posted_at`を収集していたがレポートに表示していなかった。「投稿時間帯」集計は少数サンプルでは実益が薄いため見送り、代わりに`report.py`の「いいね数上位の投稿」表に「投稿日」列を追加した（設計書も合わせて修正）。
+2. **`keyword`フィールドの残骸**: ハッシュタグ検索方式からURL方式への移行後も、`scraper.py`が常に空文字列の`keyword`を返し、`analyzer.py`が使われない`keywords`集計を行っていた。両方から完全に削除した。
+3. **`run.py`のエラーハンドリング不足**: `config.json`が存在しない・JSON形式が壊れている・Claude APIキーが未設定・投稿データが0件、のいずれの場合も生のPythonトレースバックが出ていた。それぞれ日本語の分かりやすいメッセージを表示して安全に終了/スキップするようにした。
