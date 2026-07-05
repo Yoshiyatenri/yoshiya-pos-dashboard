@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import re
-from datetime import datetime
 from email.header import decode_header
 
 from ai_judge import judge_urgency
