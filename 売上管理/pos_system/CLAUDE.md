@@ -35,9 +35,11 @@ Netdoa NX (Web POS) → download.py → downloads/*.csv → import_db.py → pos
 - 成功判定: `PHPSESSID` が `session.cookies` に入る
 
 ### CSV生成ジョブ送信（`/MT/MTRV/MTRV0010010.php?ws_bussId=6`）
-1. **POST前に必ずGETでフォームページを取得**（サーバーセッション初期化）
-2. **POST だけでジョブがキューに入る**
-3. **`ws_work_flg=1` トリガーGETは絶対に実行しない** — CSVが生成されなくなる
+ブラウザが行う3ステップチェーンをPythonで再現する：
+1. **GET** でフォームページを取得（サーバーセッション初期化）
+2. **POST** でジョブをキューに入れる（レスポンスに `MTRV0010040` + `openCsvWin()` JS が含まれる）
+3. **GET** `ws_work_flg=1` — ポップアップを開く（`<BODY onLoad="document.CSV.submit()">` が含まれる）
+4. **GET** `ws_work_flg=2` — onLoad の自動送信を再現 → 「CSVデータを作成します」が表示されれば成功
 
 成功レスポンス: HTML内に `MTRV0010040` が含まれる。
 
@@ -107,6 +109,21 @@ streamlit run dashboard.py
 ---
 
 ## タスクスケジューラ登録済み
-タスク名: `よしや_POS日次処理`  
-実行時刻: 毎日 07:00  
-実行ファイル: `run_daily.py`
+
+| タスク名 | トリガー | 役割 |
+|---|---|---|
+| `よしや_POS日次処理` | 毎日 07:00 / StartWhenAvailable=True | 通常の定期実行 |
+| `yoshiya_POS_logon` | ログイン時（毎回） | PC起動時に未取得分を補完 |
+
+**実行ファイル:** `C:\one_tenri\OneDrive\HTY\vscode\売上管理\pos_system\run_daily.py`  
+**作業ディレクトリ:** `C:\one_tenri\OneDrive\HTY\vscode\売上管理\pos_system`
+
+タスク再登録コマンド（管理者PowerShellで直接入力、スクリプトファイル経由は文字化けするため不可）:
+```powershell
+$a = New-ScheduledTaskAction -Execute "C:\Users\Koki\AppData\Local\Programs\Python\Python312\python.exe" -Argument "C:\one_tenri\OneDrive\HTY\vscode\売上管理\pos_system\run_daily.py" -WorkingDirectory "C:\one_tenri\OneDrive\HTY\vscode\売上管理\pos_system"
+$p = New-ScheduledTaskPrincipal -UserId "Koki" -LogonType Interactive -RunLevel Highest
+$s1 = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Hours 72)
+Register-ScheduledTask -TaskName "よしや_POS日次処理" -Action $a -Trigger (New-ScheduledTaskTrigger -Daily -At "07:00") -Settings $s1 -Principal $p -Force
+$s2 = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Hours 2)
+Register-ScheduledTask -TaskName "yoshiya_POS_logon" -Action $a -Trigger (New-ScheduledTaskTrigger -AtLogOn -User "Koki") -Settings $s2 -Principal $p -Force
+```

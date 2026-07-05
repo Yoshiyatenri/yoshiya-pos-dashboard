@@ -39,7 +39,7 @@ import json, re, requests
 from datetime import datetime
 from pathlib import Path
 
-cfg = json.loads(Path("pos_system/config.json").read_text(encoding="utf-8"))
+cfg = json.loads(Path("売上管理/pos_system/config.json").read_text(encoding="utf-8"))
 BASE_URL = "https://www.netdoa-nx.jp"
 STORE_CODES = [1,2,3,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,100]
 
@@ -122,5 +122,5 @@ CSV生成後、`https://www.netdoa-nx.jp/DL/DL0010020.php` に
 
 ## 関連ファイル
 
-- [pos_system/download.py](pos_system/download.py) — `submit_csv_job()`（56行目）、`poll_and_download()`（150行目）
-- `pos_system/config.json` — `csv_url`、`download_dir`
+- [売上管理/pos_system/download.py](売上管理/pos_system/download.py) — `submit_csv_job()`（56行目）、`poll_and_download()`（150行目）
+- `売上管理/pos_system/config.json` — `csv_url`、`download_dir`

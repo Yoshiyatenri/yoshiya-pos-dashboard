@@ -1,0 +1,915 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POSデータ自動収集システム 操作マニュアル</title>
+<style>
+:root {
+  --accent:       #E0622E;
+  --accent-light: #FCE9E0;
+  --accent-dim:   #C95525;
+  --bg:           #F8F7F4;
+  --surface:      #FFFFFF;
+  --surface-alt:  #F0EEE9;
+  --border:       #E2DDD7;
+  --text:         #1C1410;
+  --text-muted:   #6B5E54;
+  --text-light:   #9A8E85;
+  --ok:           #2A7A50;
+  --ok-bg:        #E4F5EC;
+  --warn:         #C07B1C;
+  --warn-bg:      #FFF3DC;
+  --err:          #C0392B;
+  --err-bg:       #FDECEA;
+  --info:         #2163B0;
+  --info-bg:      #E5EEFB;
+  --code-bg:      #EFEDE8;
+  --shadow:       0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent:       #F07A50;
+    --accent-light: #3A1E14;
+    --accent-dim:   #E06840;
+    --bg:           #1B1B22;
+    --surface:      #25252F;
+    --surface-alt:  #2D2D38;
+    --border:       #38384A;
+    --text:         #F0EDE8;
+    --text-muted:   #A49B94;
+    --text-light:   #6E6660;
+    --ok:           #4CAF78;
+    --ok-bg:        #162A1F;
+    --warn:         #E09A3A;
+    --warn-bg:      #2A2010;
+    --err:          #E85757;
+    --err-bg:       #2A1414;
+    --info:         #6CA6EC;
+    --info-bg:      #0F1E38;
+    --code-bg:      #1E1E28;
+    --shadow:       0 1px 3px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.2);
+  }
+}
+:root[data-theme="dark"] {
+  --accent:       #F07A50;
+  --accent-light: #3A1E14;
+  --accent-dim:   #E06840;
+  --bg:           #1B1B22;
+  --surface:      #25252F;
+  --surface-alt:  #2D2D38;
+  --border:       #38384A;
+  --text:         #F0EDE8;
+  --text-muted:   #A49B94;
+  --text-light:   #6E6660;
+  --ok:           #4CAF78;
+  --ok-bg:        #162A1F;
+  --warn:         #E09A3A;
+  --warn-bg:      #2A2010;
+  --err:          #E85757;
+  --err-bg:       #2A1414;
+  --info:         #6CA6EC;
+  --info-bg:      #0F1E38;
+  --code-bg:      #1E1E28;
+  --shadow:       0 1px 3px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.2);
+}
+:root[data-theme="light"] {
+  --accent:       #E0622E;
+  --accent-light: #FCE9E0;
+  --accent-dim:   #C95525;
+  --bg:           #F8F7F4;
+  --surface:      #FFFFFF;
+  --surface-alt:  #F0EEE9;
+  --border:       #E2DDD7;
+  --text:         #1C1410;
+  --text-muted:   #6B5E54;
+  --text-light:   #9A8E85;
+  --ok:           #2A7A50;
+  --ok-bg:        #E4F5EC;
+  --warn:         #C07B1C;
+  --warn-bg:      #FFF3DC;
+  --err:          #C0392B;
+  --err-bg:       #FDECEA;
+  --info:         #2163B0;
+  --info-bg:      #E5EEFB;
+  --code-bg:      #EFEDE8;
+  --shadow:       0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.04);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo UI", "Meiryo", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Layout ── */
+.layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.site-header {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow);
+}
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.header-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.header-icon svg { color: #fff; }
+.header-text h1 {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--text);
+}
+.header-text span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-ok   { background: var(--ok-bg);   color: var(--ok);   }
+.badge-warn { background: var(--warn-bg); color: var(--warn); }
+.badge-err  { background: var(--err-bg);  color: var(--err);  }
+.badge-info { background: var(--info-bg); color: var(--info); }
+.badge-neutral { background: var(--surface-alt); color: var(--text-muted); }
+
+/* ── Sidebar ── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 24px 0;
+  position: sticky;
+  top: 69px;
+  height: calc(100vh - 69px);
+  overflow-y: auto;
+}
+.sidebar-section {
+  padding: 0 16px 16px;
+}
+.sidebar-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  padding: 0 8px;
+  margin-bottom: 6px;
+}
+.sidebar-nav { list-style: none; }
+.sidebar-nav li a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: background .15s, color .15s;
+}
+.sidebar-nav li a:hover,
+.sidebar-nav li a.active {
+  background: var(--accent-light);
+  color: var(--accent-dim);
+}
+.sidebar-nav li a svg { flex-shrink: 0; opacity: .7; }
+.sidebar-nav .sub { padding-left: 28px; }
+
+/* ── Main ── */
+main {
+  padding: 36px 40px 80px;
+  max-width: 820px;
+}
+
+/* ── Sections ── */
+.section {
+  margin-bottom: 56px;
+  scroll-margin-top: 88px;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+}
+.section-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.section-title {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--text);
+}
+
+h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 24px;
+  margin-bottom: 10px;
+}
+p { margin-bottom: 12px; color: var(--text); }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  margin-bottom: 10px;
+}
+.card.accent-left { border-left: 3px solid var(--accent); }
+.card.ok-left     { border-left: 3px solid var(--ok); }
+.card.warn-left   { border-left: 3px solid var(--warn); }
+.card.err-left    { border-left: 3px solid var(--err); }
+.card.info-left   { border-left: 3px solid var(--info); }
+
+/* ── Flow diagram ── */
+.flow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+.flow-step {
+  background: var(--accent-light);
+  color: var(--accent-dim);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.flow-arrow {
+  color: var(--text-light);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.flow-db {
+  background: var(--info-bg);
+  color: var(--info);
+  border-color: var(--info);
+}
+
+/* ── Task table ── */
+.task-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  margin-bottom: 16px;
+}
+.task-table th {
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.task-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.task-table tr:last-child td { border-bottom: none; }
+.task-table tr:hover td { background: var(--surface-alt); }
+.task-name {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-dim);
+  background: var(--accent-light);
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* ── Steps ── */
+.steps { list-style: none; counter-reset: step; }
+.steps li {
+  counter-increment: step;
+  display: flex;
+  gap: 14px;
+  margin-bottom: 16px;
+  align-items: flex-start;
+}
+.steps li::before {
+  content: counter(step);
+  min-width: 26px;
+  height: 26px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.steps li .step-body { flex: 1; }
+.steps li .step-body strong { color: var(--text); font-weight: 700; }
+
+/* ── Code ── */
+.code-block {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-x: auto;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+.code-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  margin-bottom: 6px;
+}
+code {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: .9em;
+  background: var(--code-bg);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--accent-dim);
+}
+
+/* ── Alert box ── */
+.alert {
+  display: flex;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  font-size: 13.5px;
+}
+.alert svg { flex-shrink: 0; margin-top: 1px; }
+.alert.ok   { background: var(--ok-bg);   color: var(--ok);   }
+.alert.warn { background: var(--warn-bg); color: var(--warn); }
+.alert.err  { background: var(--err-bg);  color: var(--err);  }
+.alert.info { background: var(--info-bg); color: var(--info); }
+.alert strong { font-weight: 700; }
+
+/* ── Trouble table ── */
+.trouble-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  margin-bottom: 16px;
+}
+.trouble-table th {
+  background: var(--surface-alt);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 8px 14px;
+  text-align: left;
+  border-bottom: 2px solid var(--border);
+}
+.trouble-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.trouble-table tr:last-child td { border-bottom: none; }
+.trouble-table tbody tr:hover td { background: var(--surface-alt); }
+
+/* ── File tree ── */
+.file-tree {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 13px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px 22px;
+  line-height: 2;
+  overflow-x: auto;
+}
+.file-tree .dir  { color: var(--info); font-weight: 700; }
+.file-tree .main { color: var(--accent-dim); font-weight: 700; }
+.file-tree .muted{ color: var(--text-light); }
+
+/* ── Theme toggle ── */
+.theme-toggle {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.theme-toggle:hover { background: var(--border); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  main { padding: 24px 18px 60px; }
+}
+
+@media print {
+  .sidebar, .theme-toggle { display: none; }
+  .layout { grid-template-columns: 1fr; }
+  .site-header { position: static; }
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- ヘッダー -->
+<header class="site-header">
+  <div class="header-title">
+    <div class="header-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    </div>
+    <div class="header-text">
+      <h1>POSデータ自動収集システム — 操作マニュアル</h1>
+      <span>お菓子のデパートよしや 天理店　／　2026年7月版</span>
+    </div>
+  </div>
+  <div class="header-meta">
+    <span class="badge badge-ok">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+      稼働中
+    </span>
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      テーマ切替
+    </button>
+  </div>
+</header>
+
+<!-- サイドバー -->
+<nav class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">目次</div>
+    <ul class="sidebar-nav">
+      <li><a href="#overview">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        システム概要
+      </a></li>
+      <li><a href="#auto">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        自動実行スケジュール
+      </a></li>
+      <li><a href="#manual">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        手動実行の方法
+      </a></li>
+      <li><a href="#check">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        データ・ログ確認
+      </a></li>
+      <li><a href="#dashboard">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        ダッシュボード起動
+      </a></li>
+      <li><a href="#trouble">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        トラブル対処
+      </a></li>
+      <li><a href="#files">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        ファイル構成
+      </a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- メインコンテンツ -->
+<main>
+
+  <!-- 1. システム概要 -->
+  <section class="section" id="overview">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <h2 class="section-title">システム概要</h2>
+    </div>
+
+    <p>Netdoa NX（WebシステムのPOSデータ管理ページ）から全店舗の売上データを毎日自動でダウンロードし、データベースに蓄積するシステムです。蓄積されたデータはダッシュボードで分析できます。</p>
+
+    <h3>データの流れ</h3>
+    <div class="flow">
+      <div class="flow-step">Netdoa NX<br><small>Web POS</small></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">download.py<br><small>CSV取得</small></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">downloads/<br><small>YYYYMMDD.csv</small></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">import_db.py<br><small>DB取込</small></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step flow-db">pos_data.db<br><small>SQLite</small></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">dashboard.py<br><small>分析画面</small></div>
+    </div>
+
+    <div class="alert info">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div><strong>重複取込は自動スキップ</strong> — 同じ日のデータを何度取り込んでも、データベースには重複して登録されません。</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">取得対象</div>
+      <p style="margin:0">全22店舗（店舗コード 1〜22、および100）の商品売上実績 日別データ</p>
+    </div>
+  </section>
+
+  <!-- 2. 自動実行スケジュール -->
+  <section class="section" id="auto">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <h2 class="section-title">自動実行スケジュール</h2>
+    </div>
+
+    <p>タスクスケジューラに2つのタスクが登録されており、それぞれ自動で実行されます。どちらのタスクも<strong>「未取得の日付だけ」</strong>を処理するため、重複実行しても問題ありません。</p>
+
+    <table class="task-table">
+      <thead>
+        <tr>
+          <th>タスク名</th>
+          <th>実行タイミング</th>
+          <th>役割</th>
+          <th>状態</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="task-name">よしや_POS日次処理</span></td>
+          <td>毎日 <strong>07:00</strong></td>
+          <td>通常の定期実行。PCが7時に起動していれば自動実行。</td>
+          <td><span class="badge badge-ok">有効</span></td>
+        </tr>
+        <tr>
+          <td><span class="task-name">yoshiya_POS_logon</span></td>
+          <td>ログイン時<br>（毎回）</td>
+          <td>7時以降にPCを起動した場合や、数日間電源OFFだった場合にまとめて補完実行。</td>
+          <td><span class="badge badge-ok">有効</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="alert ok">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      <div><strong>数日間PCをオフにしていても大丈夫</strong> — 次回PC起動・ログイン時に、不足分をすべて自動で取り込みます。</div>
+    </div>
+
+    <h3>自動実行の確認方法</h3>
+    <p>スタートメニューで「タスク スケジューラ」を開き、タスク一覧から上記2つのタスクを確認できます。「前回の実行時刻」や「前回の実行結果」が確認できます。</p>
+  </section>
+
+  <!-- 3. 手動実行 -->
+  <section class="section" id="manual">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </div>
+      <h2 class="section-title">手動実行の方法</h2>
+    </div>
+
+    <p>自動実行されなかった場合や、今すぐデータを取得したい場合は手動で実行します。</p>
+
+    <div class="card accent-left">
+      <div class="card-title">手動実行手順</div>
+      <ol class="steps">
+        <li>
+          <div class="step-body">
+            <strong>PowerShell を開く</strong><br>
+            スタートメニューで「PowerShell」を検索して起動（管理者不要）。
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>作業フォルダーに移動</strong>
+            <div class="code-block">cd "C:\one_tenri\OneDrive\HTY\vscode\売上管理\pos_system"</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>スクリプトを実行</strong>
+            <div class="code-block">python run_daily.py</div>
+            未取得の日付を自動検出して順番に処理します。すでに最新であれば「未取得の日付なし」と表示されます。
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <div class="alert info">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div>1日分のデータ処理には約2〜5分かかります。複数日分まとめて処理する場合はその分時間がかかります。処理中はPowerShellを閉じないでください。</div>
+    </div>
+
+    <h3>特定日付だけを取得したい場合</h3>
+    <div class="code-label">例：2026年6月25日のCSVのみダウンロード</div>
+    <div class="code-block">python download.py 20260625</div>
+
+    <h3>特定のCSVをデータベースに入れ直したい場合</h3>
+    <div class="code-label">例：20260625.csv を再取込</div>
+    <div class="code-block">python import_db.py downloads\20260625.csv</div>
+  </section>
+
+  <!-- 4. データ・ログ確認 -->
+  <section class="section" id="check">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <h2 class="section-title">データ・ログ確認</h2>
+    </div>
+
+    <h3>データベースの最新日付を確認する</h3>
+    <p>PowerShellで以下を実行すると、DBに入っている最新日付と直近のデータ件数を確認できます。</p>
+    <div class="code-block">python -c "
+import sqlite3
+con = sqlite3.connect('pos_data.db')
+print('最新日付:', con.execute('SELECT MAX(pos_date) FROM sales').fetchone()[0])
+print('総件数:', con.execute('SELECT COUNT(*) FROM sales').fetchone()[0])
+con.close()
+"</div>
+
+    <h3>ダウンロード済みCSVを確認する</h3>
+    <div class="code-block">Get-ChildItem downloads\*.csv | Sort-Object Name | Select-Object Name, Length, LastWriteTime</div>
+
+    <h3>実行ログを確認する</h3>
+    <p>ログファイルは <code>logs\</code> フォルダーに月別で保存されています。</p>
+    <table class="task-table">
+      <thead>
+        <tr><th>ファイル名</th><th>内容</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>daily_YYYYMM.log</code></td><td>run_daily.py の実行ログ（何日分処理したか、件数など）</td></tr>
+        <tr><td><code>download_YYYYMM.log</code></td><td>download.py のログ（Netdoa NX への接続・ダウンロード状況）</td></tr>
+        <tr><td><code>import_YYYYMM.log</code></td><td>import_db.py のログ（DB取込件数・スキップ件数）</td></tr>
+      </tbody>
+    </table>
+    <div class="code-label">最新ログを開く</div>
+    <div class="code-block">Get-ChildItem logs\daily_*.log | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | Get-Content -Tail 30</div>
+  </section>
+
+  <!-- 5. ダッシュボード -->
+  <section class="section" id="dashboard">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      </div>
+      <h2 class="section-title">ダッシュボード起動</h2>
+    </div>
+
+    <p>蓄積されたデータをブラウザで分析するダッシュボードを起動できます。</p>
+
+    <div class="card accent-left">
+      <div class="card-title">起動手順</div>
+      <ol class="steps">
+        <li>
+          <div class="step-body">
+            <strong>PowerShell を開いて作業フォルダーに移動</strong>
+            <div class="code-block">cd "C:\one_tenri\OneDrive\HTY\vscode\売上管理\pos_system"</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>ダッシュボードを起動</strong>
+            <div class="code-block">streamlit run dashboard.py</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>ブラウザで確認</strong><br>
+            自動的にブラウザが開きます。開かない場合は <code>http://localhost:8501</code> にアクセスしてください。
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>終了するとき</strong><br>
+            PowerShellで <kbd>Ctrl</kbd> + <kbd>C</kbd> を押してください。
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <div class="alert warn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div>ダッシュボードを起動したままPCを終了してもデータには影響ありません。ただし次回起動時は再度 <code>streamlit run dashboard.py</code> を実行してください。</div>
+    </div>
+  </section>
+
+  <!-- 6. トラブル対処 -->
+  <section class="section" id="trouble">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <h2 class="section-title">トラブル対処</h2>
+    </div>
+
+    <table class="trouble-table">
+      <thead>
+        <tr>
+          <th style="width:32%">症状</th>
+          <th style="width:30%">原因</th>
+          <th>対処</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-warn">要確認</span><br>自動実行されていない（ログに何も残っていない）</td>
+          <td>PC が7時頃に電源OFF だった、またはログインしていなかった</td>
+          <td>PowerShellで <code>python run_daily.py</code> を手動実行する。未取得分をまとめて取得します。</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-err">エラー</span><br>「CSVダウンロード失敗」とログに表示される</td>
+          <td>Netdoa NX への接続失敗、またはCSV生成タイムアウト（25分超）</td>
+          <td>インターネット接続を確認してから再実行。繰り返す場合はNetdoa NXに直接ログインして状態を確認してください。</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-err">エラー</span><br>「ログイン失敗」とログに表示される</td>
+          <td>Netdoa NXのパスワードが変わった</td>
+          <td><code>config.json</code> の <code>password</code> を新しいパスワードに更新してください。</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-warn">要確認</span><br>DBの最新日付が数日前のまま</td>
+          <td>自動実行が何日か動いていない</td>
+          <td><code>python run_daily.py</code> を実行。複数日分をまとめて処理します（1日あたり約3〜5分）。</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-err">エラー</span><br>Python が見つからないというエラー</td>
+          <td>Python がインストールされていない、またはパスが通っていない</td>
+          <td>Python 3.12 を公式サイトからインストールし直してください。「Add to PATH」にチェックを入れてインストール。</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-warn">要確認</span><br>ダッシュボードが起動しない</td>
+          <td>streamlit がインストールされていない</td>
+          <td>PowerShellで <code>pip install streamlit</code> を実行してください。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="alert info">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div><strong>困ったときは</strong> — ログファイル（<code>logs\daily_YYYYMM.log</code>）の末尾を確認すると、エラーの詳細が書かれています。</div>
+    </div>
+  </section>
+
+  <!-- 7. ファイル構成 -->
+  <section class="section" id="files">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <h2 class="section-title">ファイル構成</h2>
+    </div>
+
+    <p>すべてのファイルは以下のフォルダーにあります：</p>
+    <div class="code-block" style="margin-bottom:16px">C:\one_tenri\OneDrive\HTY\vscode\売上管理\pos_system\</div>
+
+    <div class="file-tree">
+<span class="dir">pos_system/</span>
+├── <span class="main">run_daily.py</span>        　タスクスケジューラから呼ばれるメインスクリプト
+├── <span class="main">download.py</span>         　Netdoa NXからCSVをダウンロード
+├── <span class="main">import_db.py</span>        　CSVをデータベースに取り込む
+├── <span class="main">dashboard.py</span>        　分析ダッシュボード（Streamlit）
+├── <span class="muted">config.json</span>         　認証情報・設定（バックアップ注意）
+├── <span class="muted">pos_data.db</span>         　売上データベース（SQLite）
+├── <span class="dir">downloads/</span>           　ダウンロードしたCSVファイル
+│   └── <span class="muted">YYYYMMDD.csv</span>   　　日付ごとのCSV
+├── <span class="dir">logs/</span>               　実行ログ
+│   └── <span class="muted">daily_YYYYMM.log</span>　　月別ログファイル
+└── <span class="muted">requirements.txt</span>    　必要なPythonパッケージ一覧
+    </div>
+
+    <div class="alert warn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div>
+        <strong>config.json と pos_data.db は自動バックアップされません。</strong>
+        定期的に別ドライブやUSBにコピーしておくことをおすすめします。特に <code>config.json</code> にはNetdoa NXのログイン情報が入っています。
+      </div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+function toggleTheme() {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme');
+  if (current === 'dark') {
+    root.setAttribute('data-theme', 'light');
+  } else if (current === 'light') {
+    root.setAttribute('data-theme', 'dark');
+  } else {
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  }
+}
+
+// アクティブリンクのハイライト
+const sections = document.querySelectorAll('.section');
+const navLinks = document.querySelectorAll('.sidebar-nav a');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navLinks.forEach(link => link.classList.remove('active'));
+      const id = entry.target.id;
+      const link = document.querySelector(`.sidebar-nav a[href="#${id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
