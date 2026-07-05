@@ -34,7 +34,7 @@ def generate_plan_ideas(summary, api_key, client=None):
             max_tokens=1024,
             messages=[{"role": "user", "content": prompt}],
         )
-        text = response.content[0].text
+        text = next(block.text for block in response.content if block.type == "text")
         return [line.strip("- ").strip() for line in text.splitlines() if line.strip()]
     except Exception as error:
         print(f"企画案の生成に失敗しました: {error}")

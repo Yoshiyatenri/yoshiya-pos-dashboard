@@ -14,7 +14,7 @@ def test_build_prompt_includes_hashtags_and_captions():
 
 def test_generate_plan_ideas_parses_response_lines():
     fake_response = MagicMock()
-    fake_response.content = [MagicMock(text="- 企画案1\n- 企画案2")]
+    fake_response.content = [MagicMock(type="text", text="- 企画案1\n- 企画案2")]
     fake_client = MagicMock()
     fake_client.messages.create.return_value = fake_response
 

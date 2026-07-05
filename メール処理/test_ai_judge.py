@@ -12,7 +12,7 @@ def test_build_prompt_includes_subject_and_body():
 def test_judge_urgency_parses_response():
     fake_response = MagicMock()
     fake_response.content = [
-        MagicMock(text="緊急度: 高\n返信要否: 要\n理由: 締め切りが本日のため")
+        MagicMock(type="text", text="緊急度: 高\n返信要否: 要\n理由: 締め切りが本日のため")
     ]
     fake_client = MagicMock()
     fake_client.messages.create.return_value = fake_response

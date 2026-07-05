@@ -43,7 +43,7 @@ def judge_urgency(subject, body, api_key, client=None):
             max_tokens=256,
             messages=[{"role": "user", "content": prompt}],
         )
-        text = response.content[0].text
+        text = next(block.text for block in response.content if block.type == "text")
         return _parse_judgement(text)
     except Exception as error:
         print(f"AI判定に失敗しました: {error}")
