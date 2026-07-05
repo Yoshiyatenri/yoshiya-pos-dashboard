@@ -1,8 +1,7 @@
-import csv
 import json
 import base64
 from unittest.mock import MagicMock
-from mail_check import load_config, load_processed_uids, save_processed_uids, match_keywords, append_log, CSV_FIELDNAMES, fetch_all_uids, fetch_header, fetch_body
+from mail_check import load_config, load_processed_uids, save_processed_uids, match_keywords, fetch_all_uids, fetch_header, fetch_body
 
 
 def test_load_config_reads_json_file(tmp_path):
@@ -45,34 +44,6 @@ def test_match_keywords_returns_empty_when_no_match():
     result = match_keywords("いつもお世話になっております", ["至急", "締め切り"])
 
     assert result == []
-
-
-def test_append_log_writes_header_on_first_call(tmp_path):
-    path = tmp_path / "mail_check_log.csv"
-    row = {name: f"値-{name}" for name in CSV_FIELDNAMES}
-
-    append_log(row, str(path))
-
-    with open(path, encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
-
-    assert reader.fieldnames == CSV_FIELDNAMES
-    assert rows == [row]
-
-
-def test_append_log_appends_without_duplicate_header(tmp_path):
-    path = tmp_path / "mail_check_log.csv"
-    row1 = {name: "1" for name in CSV_FIELDNAMES}
-    row2 = {name: "2" for name in CSV_FIELDNAMES}
-
-    append_log(row1, str(path))
-    append_log(row2, str(path))
-
-    with open(path, encoding="utf-8-sig") as f:
-        rows = list(csv.DictReader(f))
-
-    assert len(rows) == 2
 
 
 def test_fetch_all_uids_returns_uid_list():
@@ -156,15 +127,16 @@ def test_main_baseline_registers_existing_uids_without_logging(tmp_path, monkeyp
     fake_conn = MagicMock()
 
     with patch.object(mail_check, "connect_imap", return_value=fake_conn), \
-         patch.object(mail_check, "fetch_all_uids", return_value=[b"1", b"2"]):
+         patch.object(mail_check, "fetch_all_uids", return_value=[b"1", b"2"]), \
+         patch.object(mail_check, "send_notification_email") as fake_send:
         mail_check.main()
 
     saved = mail_check.load_processed_uids(str(tmp_path / "processed_uids.json"))
     assert saved == {"1", "2"}
-    assert not (tmp_path / "mail_check_log.csv").exists()
+    fake_send.assert_not_called()
 
 
-def test_main_logs_only_matched_new_mail(tmp_path, monkeypatch):
+def test_main_sends_notification_for_matched_new_mail(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "config.json").write_text(
         '{"imap_host": "h", "imap_port": 143, "user": "u", "password": "p", '
@@ -185,20 +157,41 @@ def test_main_logs_only_matched_new_mail(tmp_path, monkeypatch):
          patch.object(mail_check, "fetch_body", return_value="本文"), \
          patch("mail_check.judge_urgency", return_value={
              "urgency": "高", "reply_needed": "要", "reason": "理由"
-         }) as fake_judge:
+         }), \
+         patch.object(mail_check, "send_notification_email") as fake_send:
         mail_check.main()
 
-    import csv
-    with open(tmp_path / "mail_check_log.csv", encoding="utf-8-sig") as f:
-        rows = list(csv.DictReader(f))
-
-    assert len(rows) == 1
-    assert rows[0]["件名"] == "至急対応願います"
-    assert rows[0]["ヒットキーワード"] == "至急"
-    fake_judge.assert_called_once()
+    fake_send.assert_called_once()
+    matches_arg = fake_send.call_args[0][0]
+    assert len(matches_arg) == 1
+    assert matches_arg[0]["件名"] == "至急対応願います"
+    assert matches_arg[0]["ヒットキーワード"] == "至急"
+    assert matches_arg[0]["緊急度"] == "高"
 
     saved = mail_check.load_processed_uids(str(tmp_path / "processed_uids.json"))
     assert saved == {"1", "2", "3"}
+
+
+def test_main_skips_notification_when_no_matches(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "config.json").write_text(
+        '{"imap_host": "h", "imap_port": 143, "user": "u", "password": "p", '
+        '"keywords": ["至急"], "anthropic_api_key": "k"}',
+        encoding="utf-8",
+    )
+    mail_check.save_processed_uids(set(), str(tmp_path / "processed_uids.json"))
+    fake_conn = MagicMock()
+    headers = {b"1": {"subject": "普通の連絡", "from": "a@example.com", "date": "d1"}}
+
+    with patch.object(mail_check, "connect_imap", return_value=fake_conn), \
+         patch.object(mail_check, "fetch_all_uids", return_value=[b"1"]), \
+         patch.object(mail_check, "fetch_header", side_effect=lambda c, uid: headers[uid]), \
+         patch.object(mail_check, "send_notification_email") as fake_send:
+        mail_check.main()
+
+    fake_send.assert_not_called()
+    saved = mail_check.load_processed_uids(str(tmp_path / "processed_uids.json"))
+    assert saved == {"1"}
 
 
 def test_main_continues_after_one_uid_fetch_fails(tmp_path, monkeypatch):
@@ -226,15 +219,40 @@ def test_main_continues_after_one_uid_fetch_fails(tmp_path, monkeypatch):
          patch.object(mail_check, "fetch_body", return_value="本文"), \
          patch("mail_check.judge_urgency", return_value={
              "urgency": "高", "reply_needed": "要", "reason": "理由"
-         }) as fake_judge:
+         }), \
+         patch.object(mail_check, "send_notification_email") as fake_send:
         mail_check.main()
 
-    with open(tmp_path / "mail_check_log.csv", encoding="utf-8-sig") as f:
-        rows = list(csv.DictReader(f))
-
-    assert len(rows) == 1
-    assert rows[0]["件名"] == "至急対応願います"
-    fake_judge.assert_called_once()
+    fake_send.assert_called_once()
+    matches_arg = fake_send.call_args[0][0]
+    assert len(matches_arg) == 1
+    assert matches_arg[0]["件名"] == "至急対応願います"
 
     saved = mail_check.load_processed_uids(str(tmp_path / "processed_uids.json"))
     assert saved == {"1", "2", "3"}
+
+
+def test_main_logs_details_when_notification_send_fails(tmp_path, monkeypatch, caplog):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "config.json").write_text(
+        '{"imap_host": "h", "imap_port": 143, "user": "u", "password": "p", '
+        '"keywords": ["至急"], "anthropic_api_key": "k"}',
+        encoding="utf-8",
+    )
+    mail_check.save_processed_uids(set(), str(tmp_path / "processed_uids.json"))
+    fake_conn = MagicMock()
+    headers = {b"1": {"subject": "至急対応願います", "from": "a@example.com", "date": "d1"}}
+
+    with patch.object(mail_check, "connect_imap", return_value=fake_conn), \
+         patch.object(mail_check, "fetch_all_uids", return_value=[b"1"]), \
+         patch.object(mail_check, "fetch_header", side_effect=lambda c, uid: headers[uid]), \
+         patch.object(mail_check, "fetch_body", return_value="本文"), \
+         patch("mail_check.judge_urgency", return_value={
+             "urgency": "高", "reply_needed": "要", "reason": "理由"
+         }), \
+         patch.object(mail_check, "send_notification_email", side_effect=RuntimeError("送信エラー")), \
+         caplog.at_level("ERROR", logger="mail_check"):
+        mail_check.main()
+
+    assert any("送信に失敗しました" in message for message in caplog.messages)
+    assert any("至急対応願います" in message for message in caplog.messages)

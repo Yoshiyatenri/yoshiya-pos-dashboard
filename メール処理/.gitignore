@@ -1,6 +1,8 @@
 config.json
 processed_uids.json
-mail_check_log.csv
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# サブエージェント駆動開発の進捗スクラッチ
+.superpowers/

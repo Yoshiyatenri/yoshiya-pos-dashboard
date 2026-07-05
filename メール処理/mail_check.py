@@ -1,15 +1,14 @@
-"""IMAPで新着メールをチェックし、件名キーワードに該当したメールをAI判定してログに残す。"""
-import csv
+"""IMAPで新着メールをチェックし、件名キーワードに該当したメールをAI判定して通知メールを送る。"""
 import email
 import imaplib
 import json
 import logging
 import os
 import re
-from datetime import datetime
 from email.header import decode_header
 
 from ai_judge import judge_urgency
+from notifier import send_notification_email
 
 CONFIG_PATH = "config.json"
 PROCESSED_UIDS_PATH = "processed_uids.json"
@@ -39,30 +38,6 @@ def save_processed_uids(uids, path=PROCESSED_UIDS_PATH):
 def match_keywords(subject, keywords):
     """件名に含まれるキーワードのリストを返す（部分一致）。"""
     return [kw for kw in keywords if kw in subject]
-
-
-LOG_CSV_PATH = "mail_check_log.csv"
-
-CSV_FIELDNAMES = [
-    "実行日時",
-    "メール日時",
-    "差出人",
-    "件名",
-    "ヒットキーワード",
-    "緊急度",
-    "返信要否",
-    "AI判断理由",
-]
-
-
-def append_log(row, path=LOG_CSV_PATH):
-    """検知結果を1行CSVに追記する。ファイルが無ければヘッダーも書く。"""
-    file_exists = os.path.exists(path)
-    with open(path, "a", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=CSV_FIELDNAMES)
-        if not file_exists:
-            writer.writeheader()
-        writer.writerow(row)
 
 
 def connect_imap(config):
@@ -181,7 +156,7 @@ def main():
             return
 
         new_uids = sorted(all_uids - processed, key=int)
-        matched_count = 0
+        matches = []
 
         for uid_str in new_uids:
             try:
@@ -194,9 +169,7 @@ def main():
                     judgement = judge_urgency(
                         header["subject"], body, config["anthropic_api_key"]
                     )
-                    append_log({
-                        "実行日時": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "メール日時": header["date"],
+                    matches.append({
                         "差出人": header["from"],
                         "件名": header["subject"],
                         "ヒットキーワード": "・".join(matched),
@@ -204,15 +177,24 @@ def main():
                         "返信要否": judgement["reply_needed"],
                         "AI判断理由": judgement["reason"],
                     })
-                    matched_count += 1
             except Exception as error:
                 logger.error(f"メール処理に失敗しました: uid={uid_str}: {error}")
             finally:
                 processed.add(uid_str)
 
         save_processed_uids(processed)
+
+        if matches:
+            try:
+                send_notification_email(matches, config)
+                logger.info(f"通知メール送信完了: {len(matches)}件")
+            except Exception as error:
+                logger.error(f"通知メール送信に失敗しました: {error}")
+                for match in matches:
+                    logger.error(f"未通知の検知結果: {match}")
+
         logger.info(
-            f"実行完了: 新着{len(new_uids)}件中{matched_count}件がキーワードに該当しました"
+            f"実行完了: 新着{len(new_uids)}件中{len(matches)}件がキーワードに該当しました"
         )
     finally:
         conn.logout()
