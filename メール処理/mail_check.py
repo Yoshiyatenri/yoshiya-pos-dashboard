@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+from datetime import timedelta
 from email.header import decode_header
 
 from ai_judge import judge_urgency
@@ -38,6 +39,18 @@ def save_processed_uids(uids, path=PROCESSED_UIDS_PATH):
 def match_keywords(subject, keywords):
     """件名に含まれるキーワードのリストを返す（部分一致）。"""
     return [kw for kw in keywords if kw in subject]
+
+
+def match_dates(text, received_date):
+    """件名+本文テキストに、受信日または翌日の日付が含まれていれば検出日付のリストを返す。"""
+    hits = []
+    for target_date in (received_date, received_date + timedelta(days=1)):
+        month, day = target_date.month, target_date.day
+        kanji_pattern = f"{month}月{day}日"
+        slash_pattern = rf"(?<!\d){month}/{day}(?!\d)"
+        if kanji_pattern in text or re.search(slash_pattern, text):
+            hits.append(f"{month}/{day}")
+    return hits
 
 
 def connect_imap(config):

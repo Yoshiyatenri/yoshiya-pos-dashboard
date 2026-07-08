@@ -1,7 +1,8 @@
 import json
 import base64
+from datetime import date
 from unittest.mock import MagicMock
-from mail_check import load_config, load_processed_uids, save_processed_uids, match_keywords, fetch_all_uids, fetch_header, fetch_body
+from mail_check import load_config, load_processed_uids, save_processed_uids, match_keywords, match_dates, fetch_all_uids, fetch_header, fetch_body
 
 
 def test_load_config_reads_json_file(tmp_path):
@@ -42,6 +43,42 @@ def test_match_keywords_returns_matched_list():
 
 def test_match_keywords_returns_empty_when_no_match():
     result = match_keywords("いつもお世話になっております", ["至急", "締め切り"])
+
+    assert result == []
+
+
+def test_match_dates_detects_received_date_kanji_format():
+    result = match_dates("7月10日必着でお願いします", date(2026, 7, 10))
+
+    assert result == ["7/10"]
+
+
+def test_match_dates_detects_received_date_slash_format():
+    result = match_dates("7/10までにご返信ください", date(2026, 7, 10))
+
+    assert result == ["7/10"]
+
+
+def test_match_dates_detects_next_day():
+    result = match_dates("明日7/11までにお願いします", date(2026, 7, 10))
+
+    assert result == ["7/11"]
+
+
+def test_match_dates_handles_month_rollover():
+    result = match_dates("8/1締め切りです", date(2026, 7, 31))
+
+    assert result == ["8/1"]
+
+
+def test_match_dates_no_match_returns_empty_list():
+    result = match_dates("キーワードもない普通のメールです", date(2026, 7, 10))
+
+    assert result == []
+
+
+def test_match_dates_avoids_partial_match_false_positive():
+    result = match_dates("7/10のイベントについて", date(2026, 7, 1))
 
     assert result == []
 
