@@ -104,21 +104,23 @@ def test_fetch_all_uids_raises_on_error_status():
         pass
 
 
-def test_fetch_header_parses_subject_from_date():
+def test_fetch_header_parses_subject_from_date_and_received_date():
     encoded_subject = base64.b64encode("至急のご連絡".encode("utf-8")).decode("ascii")
     raw_header = (
         f"Subject: =?utf-8?B?{encoded_subject}?=\r\n"
         "From: Head Office <honbu@example.com>\r\n"
         "Date: Sat, 04 Jul 2026 09:00:00 +0900\r\n"
     ).encode("utf-8")
+    raw_meta = b'1 (INTERNALDATE "04-Jul-2026 09:00:00 +0900" BODY[HEADER.FIELDS (SUBJECT FROM DATE)] {123}'
     fake_conn = MagicMock()
-    fake_conn.uid.return_value = ("OK", [(b"1 (BODY[HEADER.FIELDS])", raw_header)])
+    fake_conn.uid.return_value = ("OK", [(raw_meta, raw_header)])
 
     result = fetch_header(fake_conn, b"1")
 
     assert result["subject"] == "至急のご連絡"
     assert "honbu@example.com" in result["from"]
     assert result["date"] == "Sat, 04 Jul 2026 09:00:00 +0900"
+    assert result["received_date"] == date(2026, 7, 4)
 
 
 def test_fetch_body_returns_plain_text():

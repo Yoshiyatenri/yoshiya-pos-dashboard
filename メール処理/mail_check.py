@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import re
-from datetime import timedelta
+from datetime import date, timedelta
 from email.header import decode_header
 
 from ai_judge import judge_urgency
@@ -82,18 +82,21 @@ def _decode_mime_words(raw_value):
 
 
 def fetch_header(conn, uid):
-    """メールの件名・差出人・日時を取得する。"""
+    """メールの件名・差出人・日時・受信日を取得する。"""
     status, data = conn.uid(
-        "fetch", uid, "(BODY.PEEK[HEADER.FIELDS (SUBJECT FROM DATE)])"
+        "fetch", uid, "(INTERNALDATE BODY.PEEK[HEADER.FIELDS (SUBJECT FROM DATE)])"
     )
     if status != "OK":
         raise RuntimeError(f"ヘッダー取得に失敗しました: uid={uid}")
-    raw_header = data[0][1]
+    raw_response = data[0]
+    internal_date_tuple = imaplib.Internaldate2tuple(raw_response[0])
+    raw_header = raw_response[1]
     msg = email.message_from_bytes(raw_header)
     return {
         "subject": _decode_mime_words(msg.get("Subject", "")),
         "from": _decode_mime_words(msg.get("From", "")),
         "date": msg.get("Date", ""),
+        "received_date": date(*internal_date_tuple[:3]),
     }
 
 
