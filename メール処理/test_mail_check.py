@@ -354,3 +354,32 @@ def test_main_sends_notification_for_keyword_matched_in_body_only(tmp_path, monk
     matches_arg = fake_send.call_args[0][0]
     assert len(matches_arg) == 1
     assert matches_arg[0]["ヒットキーワード"] == "至急"
+
+
+def test_main_prefers_keyword_label_when_both_keyword_and_date_match(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "config.json").write_text(
+        '{"imap_host": "h", "imap_port": 143, "user": "u", "password": "p", '
+        '"keywords": ["至急"], "anthropic_api_key": "k"}',
+        encoding="utf-8",
+    )
+    mail_check.save_processed_uids(set(), str(tmp_path / "processed_uids.json"))
+    fake_conn = MagicMock()
+    headers = {
+        b"1": {"subject": "至急のご連絡", "from": "a@example.com", "date": "d1", "received_date": date(2026, 7, 10)},
+    }
+
+    with patch.object(mail_check, "connect_imap", return_value=fake_conn), \
+         patch.object(mail_check, "fetch_all_uids", return_value=[b"1"]), \
+         patch.object(mail_check, "fetch_header", side_effect=lambda c, uid: headers[uid]), \
+         patch.object(mail_check, "fetch_body", return_value="7/10までにご対応をお願いします"), \
+         patch("mail_check.judge_urgency", return_value={
+             "urgency": "高", "reply_needed": "要", "reason": "理由"
+         }), \
+         patch.object(mail_check, "send_notification_email") as fake_send:
+        mail_check.main()
+
+    fake_send.assert_called_once()
+    matches_arg = fake_send.call_args[0][0]
+    assert len(matches_arg) == 1
+    assert matches_arg[0]["ヒットキーワード"] == "至急"
