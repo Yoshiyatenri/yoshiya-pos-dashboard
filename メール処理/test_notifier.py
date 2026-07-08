@@ -58,7 +58,7 @@ def test_send_notification_email_sends_via_smtp_with_starttls():
     with patch("notifier.smtplib.SMTP", return_value=fake_smtp) as fake_smtp_cls:
         send_notification_email(matches, config)
 
-    fake_smtp_cls.assert_called_once_with("smtp.example.com", 587)
+    fake_smtp_cls.assert_called_once_with("smtp.example.com", 587, local_hostname="localhost")
     fake_smtp.starttls.assert_called_once()
     fake_smtp.login.assert_called_once_with("tenri@okashinodepart.net", "secret")
     fake_smtp.send_message.assert_called_once()

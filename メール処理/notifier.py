@@ -29,7 +29,11 @@ def send_notification_email(matches, config):
     message["To"] = config["notify_to"]
     message.set_content(build_email_body(matches))
 
-    with smtplib.SMTP(config["smtp_host"], config["smtp_port"]) as smtp:
+    # PCの「コンピューター名」が日本語だとEHLOコマンドの送信に失敗するため、
+    # ローカルホスト名を固定のASCII文字列にして環境依存を避ける
+    with smtplib.SMTP(
+        config["smtp_host"], config["smtp_port"], local_hostname="localhost"
+    ) as smtp:
         smtp.starttls()
         smtp.login(config["user"], config["password"])
         smtp.send_message(message)
