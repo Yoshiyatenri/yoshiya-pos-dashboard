@@ -46,9 +46,9 @@ def match_dates(text, received_date):
     hits = []
     for target_date in (received_date, received_date + timedelta(days=1)):
         month, day = target_date.month, target_date.day
-        kanji_pattern = f"{month}月{day}日"
+        kanji_pattern = rf"(?<!\d){month}月{day}日"
         slash_pattern = rf"(?<!\d){month}/{day}(?!\d)"
-        if kanji_pattern in text or re.search(slash_pattern, text):
+        if re.search(kanji_pattern, text) or re.search(slash_pattern, text):
             hits.append(f"{month}/{day}")
     return hits
 
@@ -89,6 +89,8 @@ def fetch_header(conn, uid):
     if status != "OK":
         raise RuntimeError(f"ヘッダー取得に失敗しました: uid={uid}")
     raw_response = data[0]
+    # imaplib.Internaldate2tupleはスクリプト実行環境のローカルタイムゾーンで日時を解釈するため、
+    # IMAPサーバーとこのPCが同じタイムゾーン（日本時間）である前提に依存している
     internal_date_tuple = imaplib.Internaldate2tuple(raw_response[0])
     raw_header = raw_response[1]
     msg = email.message_from_bytes(raw_header)
@@ -217,7 +219,7 @@ def main():
                     logger.error(f"未通知の検知結果: {match}")
 
         logger.info(
-            f"実行完了: 新着{len(new_uids)}件中{len(matches)}件がキーワードに該当しました"
+            f"実行完了: 新着{len(new_uids)}件中{len(matches)}件が検知条件に該当しました"
         )
     finally:
         conn.logout()

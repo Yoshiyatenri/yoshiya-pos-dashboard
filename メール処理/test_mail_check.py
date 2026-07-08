@@ -83,6 +83,12 @@ def test_match_dates_avoids_partial_match_false_positive():
     assert result == []
 
 
+def test_match_dates_avoids_kanji_month_partial_match_false_positive():
+    result = match_dates("11月1日開催のイベントについて", date(2026, 1, 1))
+
+    assert result == []
+
+
 def test_fetch_all_uids_returns_uid_list():
     fake_conn = MagicMock()
     fake_conn.uid.return_value = ("OK", [b"1 2 3"])

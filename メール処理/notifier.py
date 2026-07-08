@@ -6,7 +6,7 @@ from email.message import EmailMessage
 def build_email_body(matches):
     """検知したメールのリストから、まとめて1通分の本文テキストを組み立てる。"""
     separator = "-" * 40
-    lines = [f"以下のキーワード該当メールを検知しました（{len(matches)}件）。", ""]
+    lines = [f"以下の該当メールを検知しました（{len(matches)}件）。", ""]
 
     for match in matches:
         lines.append(separator)
