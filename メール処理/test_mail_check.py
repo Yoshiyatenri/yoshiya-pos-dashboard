@@ -185,9 +185,9 @@ def test_main_sends_notification_for_matched_new_mail(tmp_path, monkeypatch):
     mail_check.save_processed_uids({"1"}, str(tmp_path / "processed_uids.json"))
     fake_conn = MagicMock()
     headers = {
-        b"1": {"subject": "既読メール", "from": "a@example.com", "date": "d1"},
-        b"2": {"subject": "至急対応願います", "from": "b@example.com", "date": "d2"},
-        b"3": {"subject": "普通の連絡", "from": "c@example.com", "date": "d3"},
+        b"1": {"subject": "既読メール", "from": "a@example.com", "date": "d1", "received_date": date(2026, 7, 4)},
+        b"2": {"subject": "至急対応願います", "from": "b@example.com", "date": "d2", "received_date": date(2026, 7, 4)},
+        b"3": {"subject": "普通の連絡", "from": "c@example.com", "date": "d3", "received_date": date(2026, 7, 4)},
     }
 
     with patch.object(mail_check, "connect_imap", return_value=fake_conn), \
@@ -220,11 +220,12 @@ def test_main_skips_notification_when_no_matches(tmp_path, monkeypatch):
     )
     mail_check.save_processed_uids(set(), str(tmp_path / "processed_uids.json"))
     fake_conn = MagicMock()
-    headers = {b"1": {"subject": "普通の連絡", "from": "a@example.com", "date": "d1"}}
+    headers = {b"1": {"subject": "普通の連絡", "from": "a@example.com", "date": "d1", "received_date": date(2026, 7, 4)}}
 
     with patch.object(mail_check, "connect_imap", return_value=fake_conn), \
          patch.object(mail_check, "fetch_all_uids", return_value=[b"1"]), \
          patch.object(mail_check, "fetch_header", side_effect=lambda c, uid: headers[uid]), \
+         patch.object(mail_check, "fetch_body", return_value="本文"), \
          patch.object(mail_check, "send_notification_email") as fake_send:
         mail_check.main()
 
@@ -243,8 +244,8 @@ def test_main_continues_after_one_uid_fetch_fails(tmp_path, monkeypatch):
     mail_check.save_processed_uids(set(), str(tmp_path / "processed_uids.json"))
     fake_conn = MagicMock()
     headers = {
-        b"1": {"subject": "至急対応願います", "from": "a@example.com", "date": "d1"},
-        b"3": {"subject": "普通の連絡", "from": "c@example.com", "date": "d3"},
+        b"1": {"subject": "至急対応願います", "from": "a@example.com", "date": "d1", "received_date": date(2026, 7, 4)},
+        b"3": {"subject": "普通の連絡", "from": "c@example.com", "date": "d3", "received_date": date(2026, 7, 4)},
     }
 
     def fake_fetch_header(conn, uid):
@@ -280,7 +281,7 @@ def test_main_logs_details_when_notification_send_fails(tmp_path, monkeypatch, c
     )
     mail_check.save_processed_uids(set(), str(tmp_path / "processed_uids.json"))
     fake_conn = MagicMock()
-    headers = {b"1": {"subject": "至急対応願います", "from": "a@example.com", "date": "d1"}}
+    headers = {b"1": {"subject": "至急対応願います", "from": "a@example.com", "date": "d1", "received_date": date(2026, 7, 4)}}
 
     with patch.object(mail_check, "connect_imap", return_value=fake_conn), \
          patch.object(mail_check, "fetch_all_uids", return_value=[b"1"]), \
@@ -295,3 +296,61 @@ def test_main_logs_details_when_notification_send_fails(tmp_path, monkeypatch, c
 
     assert any("送信に失敗しました" in message for message in caplog.messages)
     assert any("至急対応願います" in message for message in caplog.messages)
+
+
+def test_main_sends_notification_for_date_matched_mail_without_keyword(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "config.json").write_text(
+        '{"imap_host": "h", "imap_port": 143, "user": "u", "password": "p", '
+        '"keywords": ["至急"], "anthropic_api_key": "k"}',
+        encoding="utf-8",
+    )
+    mail_check.save_processed_uids(set(), str(tmp_path / "processed_uids.json"))
+    fake_conn = MagicMock()
+    headers = {
+        b"1": {"subject": "明日の件について", "from": "a@example.com", "date": "d1", "received_date": date(2026, 7, 10)},
+    }
+
+    with patch.object(mail_check, "connect_imap", return_value=fake_conn), \
+         patch.object(mail_check, "fetch_all_uids", return_value=[b"1"]), \
+         patch.object(mail_check, "fetch_header", side_effect=lambda c, uid: headers[uid]), \
+         patch.object(mail_check, "fetch_body", return_value="7/11までにご確認をお願いします"), \
+         patch("mail_check.judge_urgency", return_value={
+             "urgency": "中", "reply_needed": "要", "reason": "理由"
+         }), \
+         patch.object(mail_check, "send_notification_email") as fake_send:
+        mail_check.main()
+
+    fake_send.assert_called_once()
+    matches_arg = fake_send.call_args[0][0]
+    assert len(matches_arg) == 1
+    assert matches_arg[0]["ヒットキーワード"] == "日付(7/11)"
+
+
+def test_main_sends_notification_for_keyword_matched_in_body_only(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "config.json").write_text(
+        '{"imap_host": "h", "imap_port": 143, "user": "u", "password": "p", '
+        '"keywords": ["至急"], "anthropic_api_key": "k"}',
+        encoding="utf-8",
+    )
+    mail_check.save_processed_uids(set(), str(tmp_path / "processed_uids.json"))
+    fake_conn = MagicMock()
+    headers = {
+        b"1": {"subject": "いつもの連絡です", "from": "a@example.com", "date": "d1", "received_date": date(2026, 7, 4)},
+    }
+
+    with patch.object(mail_check, "connect_imap", return_value=fake_conn), \
+         patch.object(mail_check, "fetch_all_uids", return_value=[b"1"]), \
+         patch.object(mail_check, "fetch_header", side_effect=lambda c, uid: headers[uid]), \
+         patch.object(mail_check, "fetch_body", return_value="本文中に至急の対応をお願いします"), \
+         patch("mail_check.judge_urgency", return_value={
+             "urgency": "高", "reply_needed": "要", "reason": "理由"
+         }), \
+         patch.object(mail_check, "send_notification_email") as fake_send:
+        mail_check.main()
+
+    fake_send.assert_called_once()
+    matches_arg = fake_send.call_args[0][0]
+    assert len(matches_arg) == 1
+    assert matches_arg[0]["ヒットキーワード"] == "至急"

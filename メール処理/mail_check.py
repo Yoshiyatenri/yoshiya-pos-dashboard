@@ -36,9 +36,9 @@ def save_processed_uids(uids, path=PROCESSED_UIDS_PATH):
         json.dump(sorted(uids), f, ensure_ascii=False, indent=2)
 
 
-def match_keywords(subject, keywords):
-    """件名に含まれるキーワードのリストを返す（部分一致）。"""
-    return [kw for kw in keywords if kw in subject]
+def match_keywords(text, keywords):
+    """件名+本文の結合テキストに含まれるキーワードのリストを返す（部分一致）。"""
+    return [kw for kw in keywords if kw in text]
 
 
 def match_dates(text, received_date):
@@ -178,17 +178,24 @@ def main():
             try:
                 uid = uid_str.encode()
                 header = fetch_header(conn, uid)
-                matched = match_keywords(header["subject"], config["keywords"])
+                body = fetch_body(conn, uid)
+                combined_text = header["subject"] + "\n" + body
 
-                if matched:
-                    body = fetch_body(conn, uid)
+                matched_keywords = match_keywords(combined_text, config["keywords"])
+                matched_dates = match_dates(combined_text, header["received_date"])
+
+                if matched_keywords or matched_dates:
                     judgement = judge_urgency(
                         header["subject"], body, config["anthropic_api_key"]
                     )
+                    if matched_keywords:
+                        hit_label = "・".join(matched_keywords)
+                    else:
+                        hit_label = "・".join(f"日付({d})" for d in matched_dates)
                     matches.append({
                         "差出人": header["from"],
                         "件名": header["subject"],
-                        "ヒットキーワード": "・".join(matched),
+                        "ヒットキーワード": hit_label,
                         "緊急度": judgement["urgency"],
                         "返信要否": judgement["reply_needed"],
                         "AI判断理由": judgement["reason"],
