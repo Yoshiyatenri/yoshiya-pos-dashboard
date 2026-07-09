@@ -25,6 +25,32 @@ _cfg_path = BASE_DIR / "config.json"
 cfg = json.loads(_cfg_path.read_text(encoding="utf-8")) if _cfg_path.exists() else {}
 
 st.set_page_config(page_title="よしや POSデータ抽出", layout="wide")
+
+
+def check_password() -> bool:
+    """パスワード認証（Secrets → config.json の順で参照）"""
+    try:
+        correct = st.secrets["password"]
+    except Exception:
+        correct = cfg.get("dashboard_password", "")
+
+    if st.session_state.get("authenticated"):
+        return True
+
+    st.title("📊 よしや POSデータ抽出ダッシュボード")
+    pw = st.text_input("パスワードを入力してください", type="password", key="pw_input")
+    if pw:
+        if pw == correct:
+            st.session_state["authenticated"] = True
+            st.rerun()
+        else:
+            st.error("パスワードが違います")
+    return False
+
+
+if not check_password():
+    st.stop()
+
 st.title("📊 よしや POSデータ抽出ダッシュボード")
 
 PREFIX_RE = re.compile(r'^お菓子のデパート\s*よしや\s*')
