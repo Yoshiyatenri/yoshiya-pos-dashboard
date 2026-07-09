@@ -436,8 +436,13 @@ if st.session_state.get("is_admin") and _use_pg():
             con,
         )
         con.close()
+        df_logs["accessed_at"] = (
+            pd.to_datetime(df_logs["accessed_at"], utc=True)
+            .dt.tz_convert("Asia/Tokyo")
+            .dt.strftime("%Y-%m-%d %H:%M:%S")
+        )
         df_logs = df_logs.rename(columns={
-            "accessed_at": "日時",
+            "accessed_at": "日時（JST）",
             "stores": "店舗",
             "start_date": "開始日",
             "end_date": "終了日",
