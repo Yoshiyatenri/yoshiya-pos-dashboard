@@ -28,11 +28,13 @@ st.set_page_config(page_title="よしや POSデータ抽出", layout="wide")
 
 
 def check_password() -> bool:
-    """パスワード認証（Secrets → config.json の順で参照）"""
+    """パスワード認証（通常ユーザー / 管理者を区別）"""
     try:
         correct = st.secrets["password"]
+        admin_pw = st.secrets["admin_password"]
     except Exception:
         correct = cfg.get("dashboard_password", "")
+        admin_pw = cfg.get("admin_password", "")
 
     if st.session_state.get("authenticated"):
         return True
@@ -40,8 +42,13 @@ def check_password() -> bool:
     st.title("📊 よしや POSデータ抽出ダッシュボード")
     pw = st.text_input("パスワードを入力してください", type="password", key="pw_input")
     if pw:
-        if pw == correct:
+        if pw == admin_pw:
             st.session_state["authenticated"] = True
+            st.session_state["is_admin"] = True
+            st.rerun()
+        elif pw == correct:
+            st.session_state["authenticated"] = True
+            st.session_state["is_admin"] = False
             st.rerun()
         else:
             st.error("パスワードが違います")
@@ -50,6 +57,24 @@ def check_password() -> bool:
 
 if not check_password():
     st.stop()
+
+
+def save_access_log(stores: list, start: str, end: str, jan: str, cats: list) -> None:
+    """抽出操作をaccess_logsテーブルに保存（Supabase接続時のみ）"""
+    if not _use_pg():
+        return
+    try:
+        con = get_conn()
+        cur = con.cursor()
+        cur.execute(
+            "INSERT INTO access_logs (stores, start_date, end_date, jan_code, categories) VALUES (%s, %s, %s, %s, %s)",
+            (", ".join(stores), start, end, jan.strip(), ", ".join(cats)),
+        )
+        con.commit()
+        cur.close()
+        con.close()
+    except Exception:
+        pass
 
 st.title("📊 よしや POSデータ抽出ダッシュボード")
 
@@ -311,6 +336,7 @@ if extract_btn:
             selected_stores_db, jan_input,
             selected_cats, selected_mid_cats, selected_small_cats,
         )
+        save_access_log(selected_display, str(start_date), str(end_date), jan_input, selected_cats)
 
     if df_raw.empty:
         st.warning("該当データがありません。")
@@ -398,3 +424,26 @@ if "df_result" in st.session_state:
         file_name=f"pos_extract_{period[0]}_{period[1]}.csv",
         mime="text/csv",
     )
+
+# ─── 管理者：アクセスログ ─────────────────────────────────────────────────────
+if st.session_state.get("is_admin") and _use_pg():
+    st.divider()
+    st.subheader("🔐 アクセスログ（管理者専用）")
+    try:
+        con = get_conn()
+        df_logs = pd.read_sql_query(
+            "SELECT accessed_at, stores, start_date, end_date, jan_code, categories FROM access_logs ORDER BY accessed_at DESC LIMIT 200",
+            con,
+        )
+        con.close()
+        df_logs = df_logs.rename(columns={
+            "accessed_at": "日時",
+            "stores": "店舗",
+            "start_date": "開始日",
+            "end_date": "終了日",
+            "jan_code": "JAN",
+            "categories": "カテゴリー",
+        })
+        st.dataframe(df_logs, use_container_width=True, hide_index=True)
+    except Exception as e:
+        st.error(f"ログ取得エラー: {e}")
