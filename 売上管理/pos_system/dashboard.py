@@ -64,11 +64,17 @@ def save_access_log(stores: list, start: str, end: str, jan: str, cats: list) ->
     if not _use_pg():
         return
     try:
+        headers = st.context.headers
+        ip = headers.get("X-Forwarded-For", headers.get("X-Real-Ip", "不明"))
+        # X-Forwarded-Forは複数IPが含まれる場合があるので先頭のみ取得
+        ip = ip.split(",")[0].strip() if ip != "不明" else "不明"
+        user_agent = headers.get("User-Agent", "不明")
+
         con = get_conn()
         cur = con.cursor()
         cur.execute(
-            "INSERT INTO access_logs (stores, start_date, end_date, jan_code, categories) VALUES (%s, %s, %s, %s, %s)",
-            (", ".join(stores), start, end, jan.strip(), ", ".join(cats)),
+            "INSERT INTO access_logs (stores, start_date, end_date, jan_code, categories, ip_address, user_agent) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (", ".join(stores), start, end, jan.strip(), ", ".join(cats), ip, user_agent),
         )
         con.commit()
         cur.close()
@@ -432,7 +438,7 @@ if st.session_state.get("is_admin") and _use_pg():
     try:
         con = get_conn()
         df_logs = pd.read_sql_query(
-            "SELECT accessed_at, stores, start_date, end_date, jan_code, categories FROM access_logs ORDER BY accessed_at DESC LIMIT 200",
+            "SELECT accessed_at, stores, start_date, end_date, jan_code, categories, ip_address, user_agent FROM access_logs ORDER BY accessed_at DESC LIMIT 200",
             con,
         )
         con.close()
@@ -448,6 +454,8 @@ if st.session_state.get("is_admin") and _use_pg():
             "end_date": "終了日",
             "jan_code": "JAN",
             "categories": "カテゴリー",
+            "ip_address": "IPアドレス",
+            "user_agent": "ブラウザ",
         })
         st.dataframe(df_logs, use_container_width=True, hide_index=True)
     except Exception as e:
