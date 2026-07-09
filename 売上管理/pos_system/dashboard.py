@@ -190,7 +190,7 @@ with st.sidebar:
     today = datetime.now().date()
 
     if date_mode == "日付範囲":
-        start_date = st.date_input("開始日", today - timedelta(days=30))
+        start_date = st.date_input("開始日", today - timedelta(days=1))
         end_date = st.date_input("終了日", today - timedelta(days=1))
 
     elif date_mode == "月選択":
