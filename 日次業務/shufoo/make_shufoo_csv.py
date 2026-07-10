@@ -1,6 +1,7 @@
 """SHUFOO掲載用CSVと画像ZIPを対話形式で生成する。"""
 import csv
 import json
+import zipfile
 from datetime import date, datetime, time, timedelta
 
 
@@ -83,3 +84,21 @@ def write_csv(rows, csv_path):
 def collect_used_images(rows):
     """CSVの各行から、1ページ目の画像ファイル名を重複除去して集める。"""
     return sorted({row[6] for row in rows if row[6]})
+
+
+def check_images_exist(image_filenames, folder):
+    """画像フォルダ内に実在するかを確認し、(存在するファイル一覧, 存在しないファイル一覧)を返す。"""
+    existing, missing = [], []
+    for name in image_filenames:
+        if (folder / name).exists():
+            existing.append(name)
+        else:
+            missing.append(name)
+    return existing, missing
+
+
+def write_zip(image_filenames, folder, zip_path):
+    """指定した画像ファイルをZIPにまとめる（既存ファイルは上書き）。"""
+    with zipfile.ZipFile(zip_path, "w") as z:
+        for name in image_filenames:
+            z.write(folder / name, arcname=name)

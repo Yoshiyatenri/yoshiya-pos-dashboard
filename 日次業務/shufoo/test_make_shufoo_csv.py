@@ -1,7 +1,8 @@
 import json
+import zipfile
 from datetime import date, datetime
 
-from make_shufoo_csv import build_csv_rows, collect_used_images, compute_period, format_datetime, load_config, parse_date, resolve_image_filename, write_csv
+from make_shufoo_csv import build_csv_rows, check_images_exist, collect_used_images, compute_period, format_datetime, load_config, parse_date, resolve_image_filename, write_csv, write_zip
 
 
 def test_load_config_reads_patterns_and_stores(tmp_path):
@@ -116,3 +117,24 @@ def test_collect_used_images_deduplicates_and_sorts():
         ["1", "881829", "店C", "s", "e", "t", "b.JPG"] + [""] * 15 + ["1", "", "N"],
     ]
     assert collect_used_images(rows) == ["a.JPG", "b.JPG"]
+
+
+def test_check_images_exist_splits_existing_and_missing(tmp_path):
+    (tmp_path / "a.JPG").write_bytes(b"dummy")
+
+    existing, missing = check_images_exist(["a.JPG", "b.JPG"], tmp_path)
+
+    assert existing == ["a.JPG"]
+    assert missing == ["b.JPG"]
+
+
+def test_write_zip_bundles_only_specified_images(tmp_path):
+    (tmp_path / "a.JPG").write_bytes(b"image-a")
+    (tmp_path / "b.JPG").write_bytes(b"image-b")
+    zip_path = tmp_path / "out.zip"
+
+    write_zip(["a.JPG"], tmp_path, zip_path)
+
+    with zipfile.ZipFile(zip_path) as z:
+        assert z.namelist() == ["a.JPG"]
+        assert z.read("a.JPG") == b"image-a"
