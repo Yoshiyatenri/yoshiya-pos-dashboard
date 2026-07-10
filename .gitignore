@@ -16,3 +16,6 @@ SNS/config.json
 
 # サブエージェント駆動開発の進捗スクラッチ
 .superpowers/
+
+# 作業用ワークツリー
+.worktrees/
