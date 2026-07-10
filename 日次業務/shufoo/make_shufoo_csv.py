@@ -111,9 +111,17 @@ def prompt_pattern(config):
     print("パターンを選択してください:")
     for i, key in enumerate(keys, start=1):
         print(f"{i}: {config['patterns'][key]['label']}")
-    choice = int(input("番号を入力: "))
-    key = keys[choice - 1]
-    return key, config["patterns"][key]
+    while True:
+        text = input("番号を入力: ").strip()
+        try:
+            choice = int(text)
+            if not 1 <= choice <= len(keys):
+                raise ValueError
+        except ValueError:
+            print(f"エラー: 1〜{len(keys)}の番号を入力してください: {text}")
+            continue
+        key = keys[choice - 1]
+        return key, config["patterns"][key]
 
 
 def prompt_date(label, default_year):
@@ -136,7 +144,14 @@ def prompt_overrides(stores):
         choice = input("番号（空Enterで終了）: ").strip()
         if not choice:
             break
-        store = stores[int(choice) - 1]
+        try:
+            index = int(choice)
+            if not 1 <= index <= len(stores):
+                raise ValueError
+        except ValueError:
+            print(f"エラー: 1〜{len(stores)}の番号を入力してください: {choice}")
+            continue
+        store = stores[index - 1]
         filename = input(f"{store['store_name']}の画像ファイル名: ").strip()
         overrides[store["store_id"]] = filename
     return overrides
@@ -146,7 +161,7 @@ def main():
     """対話形式でSHUFOO掲載用CSVと画像ZIPを生成する。"""
     base_dir = Path(__file__).parent
     config = load_config(base_dir / "config.json")
-    pattern_key, pattern = prompt_pattern(config)
+    _, pattern = prompt_pattern(config)
     if not pattern["stores"]:
         print(f"エラー: パターン「{pattern['label']}」に店舗が登録されていません。")
         return
@@ -158,6 +173,9 @@ def main():
 
     title = input("チラシタイトル: ").strip()
     default_image = input("既定の画像ファイル名: ").strip()
+    while not default_image:
+        print("エラー: 既定の画像ファイル名を入力してください。")
+        default_image = input("既定の画像ファイル名: ").strip()
     overrides = prompt_overrides(pattern["stores"])
 
     rows = build_csv_rows(
