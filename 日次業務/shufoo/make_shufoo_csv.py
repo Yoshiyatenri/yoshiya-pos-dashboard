@@ -1,4 +1,5 @@
 """SHUFOO掲載用CSVと画像ZIPを対話形式で生成する。"""
+import csv
 import json
 from datetime import date, datetime, time, timedelta
 
@@ -69,3 +70,16 @@ def build_csv_rows(stores, start_dt, end_dt, title, default_image, overrides):
         )
         rows.append(row)
     return rows
+
+
+def write_csv(rows, csv_path):
+    """CSVをcp932エンコードで書き出す（既存ファイルは上書き）。"""
+    with open(csv_path, "w", encoding="cp932", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(CSV_HEADER)
+        writer.writerows(rows)
+
+
+def collect_used_images(rows):
+    """CSVの各行から、1ページ目の画像ファイル名を重複除去して集める。"""
+    return sorted({row[6] for row in rows if row[6]})

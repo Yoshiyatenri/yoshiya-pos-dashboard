@@ -1,7 +1,7 @@
 import json
 from datetime import date, datetime
 
-from make_shufoo_csv import build_csv_rows, compute_period, format_datetime, load_config, parse_date, resolve_image_filename
+from make_shufoo_csv import build_csv_rows, collect_used_images, compute_period, format_datetime, load_config, parse_date, resolve_image_filename, write_csv
 
 
 def test_load_config_reads_patterns_and_stores(tmp_path):
@@ -94,3 +94,25 @@ def test_build_csv_rows_produces_25_columns_per_store():
     assert rows[0][7:22] == [""] * 15
     assert rows[0][22:] == ["1", "", "N"]
     assert rows[1][6] == "special.JPG"
+
+
+def test_write_csv_writes_header_and_rows_in_cp932(tmp_path):
+    rows = [["20250221", "881827", "テスト店", "2026/7/9 19:00", "2026/7/11 15:00",
+              "タイトル", "default.JPG"] + [""] * 15 + ["1", "", "N"]]
+    csv_path = tmp_path / "output.csv"
+
+    write_csv(rows, csv_path)
+
+    text = csv_path.read_bytes().decode("cp932")
+    assert "チラシ入稿ID" in text
+    assert "テスト店" in text
+    assert "default.JPG" in text
+
+
+def test_collect_used_images_deduplicates_and_sorts():
+    rows = [
+        ["1", "881827", "店A", "s", "e", "t", "b.JPG"] + [""] * 15 + ["1", "", "N"],
+        ["1", "881828", "店B", "s", "e", "t", "a.JPG"] + [""] * 15 + ["1", "", "N"],
+        ["1", "881829", "店C", "s", "e", "t", "b.JPG"] + [""] * 15 + ["1", "", "N"],
+    ]
+    assert collect_used_images(rows) == ["a.JPG", "b.JPG"]
