@@ -32,3 +32,40 @@ def compute_period(start_date, end_date):
 def format_datetime(dt):
     """日時をCSV用の文字列（例: 2026/7/9 19:00）に変換する。"""
     return f"{dt.year}/{dt.month}/{dt.day} {dt.hour}:{dt.minute:02d}"
+
+
+CSV_HEADER = [
+    "チラシ入稿ID", "Shufoo!店舗ID(必須)", "先方店舗名",
+    "掲載開始日時(必須)", "掲載終了日時(必須)", "チラシタイトル(必須)",
+    "チラシ画像ファイル（１ページ目）", "チラシ画像ファイル（２ページ目）",
+    "チラシ画像ファイル（３ページ目）", "チラシ画像ファイル（４ページ目）",
+    "チラシ画像ファイル（５ページ目）", "チラシ画像ファイル（６ページ目）",
+    "チラシ画像ファイル（７ページ目）", "チラシ画像ファイル（８ページ目）",
+    "チラシ画像ファイル（９ページ目）", "チラシ画像ファイル（１０ページ目）",
+    "チラシ画像ファイル（１１ページ目）", "チラシ画像ファイル（１２ページ目）",
+    "チラシ画像ファイル（１３ページ目）", "チラシ画像ファイル（１４ページ目）",
+    "チラシ画像ファイル（１５ページ目）", "チラシ画像ファイル（１６ページ目）",
+    "ページスタイル", "ページの開き方", "掲載期間表示有無",
+]
+
+
+def resolve_image_filename(store, default_image, overrides):
+    """店舗ごとの画像ファイル名を決定する（例外指定があればそちらを優先）。"""
+    return overrides.get(store["store_id"], default_image)
+
+
+def build_csv_rows(stores, start_dt, end_dt, title, default_image, overrides):
+    """店舗マスターと入力値から、CSVの各行（25要素のリスト）を組み立てる。"""
+    start_text = format_datetime(start_dt)
+    end_text = format_datetime(end_dt)
+    rows = []
+    for store in stores:
+        image = resolve_image_filename(store, default_image, overrides)
+        row = (
+            [store["entry_id"], store["store_id"], store["store_name"],
+             start_text, end_text, title, image]
+            + [""] * 15
+            + ["1", "", "N"]
+        )
+        rows.append(row)
+    return rows

@@ -1,7 +1,7 @@
 import json
 from datetime import date, datetime
 
-from make_shufoo_csv import compute_period, format_datetime, load_config, parse_date
+from make_shufoo_csv import build_csv_rows, compute_period, format_datetime, load_config, parse_date, resolve_image_filename
 
 
 def test_load_config_reads_patterns_and_stores(tmp_path):
@@ -61,3 +61,36 @@ def test_compute_period_handles_year_boundary():
 
 def test_format_datetime_matches_shufoo_style():
     assert format_datetime(datetime(2026, 7, 9, 19, 0)) == "2026/7/9 19:00"
+
+
+def test_resolve_image_filename_uses_default_when_no_override():
+    store = {"entry_id": "1", "store_id": "881827", "store_name": "テスト店"}
+    assert resolve_image_filename(store, "default.JPG", {}) == "default.JPG"
+
+
+def test_resolve_image_filename_uses_override_when_present():
+    store = {"entry_id": "1", "store_id": "881863", "store_name": "天理店"}
+    overrides = {"881863": "yasui_tenri.JPG"}
+    assert resolve_image_filename(store, "yasui.JPG", overrides) == "yasui_tenri.JPG"
+
+
+def test_build_csv_rows_produces_25_columns_per_store():
+    stores = [
+        {"entry_id": "20250221", "store_id": "881827", "store_name": "テスト店A"},
+        {"entry_id": "20250221", "store_id": "881863", "store_name": "天理店"},
+    ]
+    start_dt = datetime(2026, 7, 9, 19, 0)
+    end_dt = datetime(2026, 7, 11, 15, 0)
+    overrides = {"881863": "special.JPG"}
+
+    rows = build_csv_rows(stores, start_dt, end_dt, "テストタイトル", "default.JPG", overrides)
+
+    assert len(rows) == 2
+    assert len(rows[0]) == 25
+    assert rows[0][:7] == [
+        "20250221", "881827", "テスト店A",
+        "2026/7/9 19:00", "2026/7/11 15:00", "テストタイトル", "default.JPG",
+    ]
+    assert rows[0][7:22] == [""] * 15
+    assert rows[0][22:] == ["1", "", "N"]
+    assert rows[1][6] == "special.JPG"
