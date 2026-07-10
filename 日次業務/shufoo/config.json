@@ -1,0 +1,47 @@
+{
+  "patterns": {
+    "otoku": {
+      "label": "お買い得チラシ",
+      "csv_filename": "tirasi.csv",
+      "zip_filename": "tirasi_images.zip",
+      "stores": [
+        {"entry_id": "20250221", "store_id": "881827", "store_name": "お菓子のデパートよしや　ユニバーサルシティ駅前店"},
+        {"entry_id": "20250221", "store_id": "881828", "store_name": "お菓子のデパートよしや　春日出店"},
+        {"entry_id": "20250221", "store_id": "881829", "store_name": "お菓子のデパートよしや　九条営業所"},
+        {"entry_id": "20250221", "store_id": "881834", "store_name": "お菓子のデパートよしや　天満営業所"},
+        {"entry_id": "20250221", "store_id": "881842", "store_name": "お菓子のデパートよしや　心斎橋営業所"},
+        {"entry_id": "20250221", "store_id": "881843", "store_name": "お菓子のデパートよしや　南千里営業所"},
+        {"entry_id": "20250221", "store_id": "881845", "store_name": "お菓子のデパートよしや　金剛営業所"},
+        {"entry_id": "20250221", "store_id": "881848", "store_name": "お菓子のデパートよしや　河内長野営業所"},
+        {"entry_id": "20250221", "store_id": "881852", "store_name": "お菓子のデパートよしや　四条河原町営業所"},
+        {"entry_id": "20250221", "store_id": "881853", "store_name": "お菓子のデパートよしや　出町営業所"},
+        {"entry_id": "20250221", "store_id": "881855", "store_name": "お菓子のデパートよしや　アステ川西店"},
+        {"entry_id": "20250221", "store_id": "881858", "store_name": "お菓子のデパートよしや　尼崎営業所"},
+        {"entry_id": "20250221", "store_id": "881859", "store_name": "お菓子のデパートよしや　神田営業所"},
+        {"entry_id": "20250221", "store_id": "881860", "store_name": "お菓子のデパートよしや　元町営業所"},
+        {"entry_id": "20250221", "store_id": "881861", "store_name": "お菓子のデパートよしや　伊丹営業所"},
+        {"entry_id": "20250221", "store_id": "881864", "store_name": "お菓子のデパートよしや　とれとれ市場店"}
+      ]
+    },
+    "yasui": {
+      "label": "やすい！",
+      "csv_filename": "tirasiyasui.csv",
+      "zip_filename": "tirasiyasui_images.zip",
+      "stores": [
+        {"entry_id": "20251009", "store_id": "881840", "store_name": "やすい！桃谷店"},
+        {"entry_id": "20251009", "store_id": "881857", "store_name": "やすい！姫路美幸通り店"},
+        {"entry_id": "20251009", "store_id": "881838", "store_name": "やすい！京橋店"},
+        {"entry_id": "20251009", "store_id": "881835", "store_name": "やすい！淡路店"},
+        {"entry_id": "20251009", "store_id": "881832", "store_name": "やすい！泉尾店"},
+        {"entry_id": "20251009", "store_id": "881831", "store_name": "やすい！塚本店"},
+        {"entry_id": "20251010", "store_id": "881830", "store_name": "やすい！　四貫島店"},
+        {"entry_id": "20251011", "store_id": "881847", "store_name": "お菓子のデパートよしや　布施営業所"},
+        {"entry_id": "20251010", "store_id": "881851", "store_name": "お菓子のデパートよしや　伏見営業所"},
+        {"entry_id": "20251018", "store_id": "881863", "store_name": "お菓子のデパートよしや　天理店"},
+        {"entry_id": "20251019", "store_id": "907938", "store_name": "やすい！　空堀店"},
+        {"entry_id": "20251020", "store_id": "881865", "store_name": "お菓子のデパートよしや　ミ・ナーラ店"},
+        {"entry_id": "20251021", "store_id": "881837", "store_name": "お菓子のデパートよしや　三国営業所"}
+      ]
+    }
+  }
+}
