@@ -3,6 +3,7 @@ import csv
 import json
 import zipfile
 from datetime import date, datetime, time, timedelta
+from pathlib import Path
 
 
 def load_config(config_path):
@@ -102,3 +103,83 @@ def write_zip(image_filenames, folder, zip_path):
     with zipfile.ZipFile(zip_path, "w") as z:
         for name in image_filenames:
             z.write(folder / name, arcname=name)
+
+
+def prompt_pattern(config):
+    """パターンを選択させ、(pattern_key, pattern_config)を返す。"""
+    keys = list(config["patterns"].keys())
+    print("パターンを選択してください:")
+    for i, key in enumerate(keys, start=1):
+        print(f"{i}: {config['patterns'][key]['label']}")
+    choice = int(input("番号を入力: "))
+    key = keys[choice - 1]
+    return key, config["patterns"][key]
+
+
+def prompt_date(label, default_year):
+    """日付の入力を受け付け、正しい形式になるまで再入力を促す。"""
+    while True:
+        text = input(f"{label}（例: 7/10）: ").strip()
+        try:
+            return parse_date(text, default_year)
+        except ValueError as error:
+            print(f"エラー: {error}")
+
+
+def prompt_overrides(stores):
+    """例外店舗（画像ファイル名が異なる店舗）の入力を受け付け、{store_id: filename}を返す。"""
+    overrides = {}
+    print("画像が異なる店舗はありますか？あれば番号を選んでください（終了は空Enter）")
+    for i, store in enumerate(stores, start=1):
+        print(f"{i}: {store['store_name']}")
+    while True:
+        choice = input("番号（空Enterで終了）: ").strip()
+        if not choice:
+            break
+        store = stores[int(choice) - 1]
+        filename = input(f"{store['store_name']}の画像ファイル名: ").strip()
+        overrides[store["store_id"]] = filename
+    return overrides
+
+
+def main():
+    """対話形式でSHUFOO掲載用CSVと画像ZIPを生成する。"""
+    base_dir = Path(__file__).parent
+    config = load_config(base_dir / "config.json")
+    pattern_key, pattern = prompt_pattern(config)
+    if not pattern["stores"]:
+        print(f"エラー: パターン「{pattern['label']}」に店舗が登録されていません。")
+        return
+
+    current_year = date.today().year
+    start_date = prompt_date("掲載開始日", current_year)
+    end_date = prompt_date("掲載終了日", current_year)
+    start_dt, end_dt = compute_period(start_date, end_date)
+
+    title = input("チラシタイトル: ").strip()
+    default_image = input("既定の画像ファイル名: ").strip()
+    overrides = prompt_overrides(pattern["stores"])
+
+    rows = build_csv_rows(
+        pattern["stores"], start_dt, end_dt, title, default_image, overrides
+    )
+    used_images = collect_used_images(rows)
+    existing, missing = check_images_exist(used_images, base_dir)
+    if missing:
+        print(f"警告: 以下の画像ファイルが見つかりません: {', '.join(missing)}")
+        if input("続行しますか？(y/N): ").strip().lower() != "y":
+            print("処理を中止しました。")
+            return
+
+    csv_path = base_dir / pattern["csv_filename"]
+    write_csv(rows, csv_path)
+
+    zip_path = base_dir / pattern["zip_filename"]
+    write_zip(existing, base_dir, zip_path)
+
+    print(f"CSVを保存しました: {csv_path}（{len(rows)}件、例外{len(overrides)}件）")
+    print(f"画像ZIPを保存しました: {zip_path}（{len(existing)}件）")
+
+
+if __name__ == "__main__":
+    main()
