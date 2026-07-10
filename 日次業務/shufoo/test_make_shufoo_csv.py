@@ -2,7 +2,7 @@ import json
 import zipfile
 from datetime import date, datetime
 
-from make_shufoo_csv import build_csv_rows, check_images_exist, collect_used_images, compute_period, format_datetime, load_config, parse_date, resolve_image_filename, write_csv, write_zip
+from make_shufoo_csv import build_csv_rows, check_images_exist, collect_used_images, compute_period, format_datetime, load_config, parse_date, resolve_image_filename, resolve_picked_image, write_csv, write_zip
 
 
 def test_load_config_reads_patterns_and_stores(tmp_path):
@@ -138,3 +138,32 @@ def test_write_zip_bundles_only_specified_images(tmp_path):
     with zipfile.ZipFile(zip_path) as z:
         assert z.namelist() == ["a.JPG"]
         assert z.read("a.JPG") == b"image-a"
+
+
+def test_resolve_picked_image_copies_file_from_outside_base_dir(tmp_path):
+    base_dir = tmp_path / "shufoo"
+    base_dir.mkdir()
+    outside_dir = tmp_path / "downloads"
+    outside_dir.mkdir()
+    picked_file = outside_dir / "chirashi.JPG"
+    picked_file.write_bytes(b"image-bytes")
+
+    result = resolve_picked_image(str(picked_file), base_dir)
+
+    assert result == "chirashi.JPG"
+    copied = base_dir / "chirashi.JPG"
+    assert copied.exists()
+    assert copied.read_bytes() == b"image-bytes"
+
+
+def test_resolve_picked_image_does_not_copy_when_already_in_base_dir(tmp_path):
+    base_dir = tmp_path / "shufoo"
+    base_dir.mkdir()
+    picked_file = base_dir / "chirashi.JPG"
+    picked_file.write_bytes(b"image-bytes")
+
+    result = resolve_picked_image(str(picked_file), base_dir)
+
+    assert result == "chirashi.JPG"
+    # コピー元と同一なので、ファイルは1つだけ存在する
+    assert list(base_dir.iterdir()) == [picked_file]

@@ -1,9 +1,11 @@
 """SHUFOO掲載用CSVと画像ZIPを対話形式で生成する。"""
 import csv
 import json
+import shutil
 import zipfile
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
+from tkinter import Tk, filedialog
 
 
 def load_config(config_path):
@@ -55,6 +57,31 @@ CSV_HEADER = [
 def resolve_image_filename(store, default_image, overrides):
     """店舗ごとの画像ファイル名を決定する（例外指定があればそちらを優先）。"""
     return overrides.get(store["store_id"], default_image)
+
+
+def resolve_picked_image(picked_path, base_dir):
+    """ダイアログで選ばれたパスをbase_dir配下のファイル名に正規化する。base_dir外のファイルはコピーする。"""
+    picked = Path(picked_path)
+    if picked.parent.resolve() != base_dir.resolve():
+        shutil.copy2(picked, base_dir / picked.name)
+    return picked.name
+
+
+def pick_image_file(base_dir):
+    """Windowsのファイル選択ダイアログを開き、選ばれた画像ファイルのbase_dir内でのファイル名を返す。キャンセル時は再表示する。"""
+    while True:
+        root = Tk()
+        root.withdraw()
+        picked_path = filedialog.askopenfilename(
+            initialdir=str(base_dir),
+            title="画像ファイルを選択してください",
+            filetypes=[("画像ファイル", "*.jpg;*.jpeg"), ("すべてのファイル", "*.*")],
+        )
+        root.destroy()
+        if not picked_path:
+            print("エラー: 画像ファイルが選択されませんでした。もう一度選択してください。")
+            continue
+        return resolve_picked_image(picked_path, base_dir)
 
 
 def build_csv_rows(stores, start_dt, end_dt, title, default_image, overrides):
@@ -134,7 +161,7 @@ def prompt_date(label, default_year):
             print(f"エラー: {error}")
 
 
-def prompt_overrides(stores):
+def prompt_overrides(stores, base_dir):
     """例外店舗（画像ファイル名が異なる店舗）の入力を受け付け、{store_id: filename}を返す。"""
     overrides = {}
     print("画像が異なる店舗はありますか？あれば番号を選んでください（終了は空Enter）")
@@ -152,7 +179,7 @@ def prompt_overrides(stores):
             print(f"エラー: 1〜{len(stores)}の番号を入力してください: {choice}")
             continue
         store = stores[index - 1]
-        filename = input(f"{store['store_name']}の画像ファイル名: ").strip()
+        filename = pick_image_file(base_dir)
         overrides[store["store_id"]] = filename
     return overrides
 
@@ -172,11 +199,8 @@ def main():
     start_dt, end_dt = compute_period(start_date, end_date)
 
     title = input("チラシタイトル: ").strip()
-    default_image = input("既定の画像ファイル名: ").strip()
-    while not default_image:
-        print("エラー: 既定の画像ファイル名を入力してください。")
-        default_image = input("既定の画像ファイル名: ").strip()
-    overrides = prompt_overrides(pattern["stores"])
+    default_image = pick_image_file(base_dir)
+    overrides = prompt_overrides(pattern["stores"], base_dir)
 
     rows = build_csv_rows(
         pattern["stores"], start_dt, end_dt, title, default_image, overrides
