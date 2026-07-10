@@ -664,7 +664,7 @@ if __name__ == "__main__":
 - [ ] **Step 2: 既存の全ユニットテストが引き続き通ることを確認する**
 
 Run: `cd "日次業務/shufoo" && python -m pytest test_make_shufoo_csv.py -v`
-Expected: PASS（全15件、`main`関連の追加テストなし）
+Expected: PASS（全14件、`main`関連の追加テストなし）
 
 - [ ] **Step 3: 手動で対話フローを実行して動作確認する**
 
