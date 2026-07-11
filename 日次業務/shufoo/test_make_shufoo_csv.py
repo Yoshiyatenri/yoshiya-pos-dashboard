@@ -1,6 +1,7 @@
 import json
 import zipfile
 from datetime import date, datetime
+from pathlib import Path
 
 from make_shufoo_csv import build_csv_rows, check_images_exist, collect_used_images, compute_period, format_datetime, load_config, parse_date, remove_used_images, resolve_image_filename, resolve_picked_image, write_csv, write_zip
 
@@ -182,3 +183,25 @@ def test_remove_used_images_deletes_specified_files(tmp_path):
 def test_remove_used_images_skips_missing_files_without_error(tmp_path):
     # 存在しないファイル名を渡してもエラーにならないことを確認する
     remove_used_images(["not_exist.JPG"], tmp_path)
+
+
+def test_remove_used_images_continues_after_oserror_and_returns_failed_names(tmp_path, monkeypatch):
+    # a.JPGが他のアプリで開かれていて削除できない状況（OSError）を再現する
+    (tmp_path / "a.JPG").write_bytes(b"image-a")
+    (tmp_path / "b.JPG").write_bytes(b"image-b")
+
+    original_unlink = Path.unlink
+
+    def fake_unlink(self, missing_ok=False):
+        if self.name == "a.JPG":
+            raise PermissionError("ファイルが使用中です")
+        return original_unlink(self, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", fake_unlink)
+
+    failed = remove_used_images(["a.JPG", "b.JPG"], tmp_path)
+
+    # a.JPGは削除失敗として報告されつつ、b.JPGの削除処理は継続される
+    assert failed == ["a.JPG"]
+    assert (tmp_path / "a.JPG").exists()
+    assert not (tmp_path / "b.JPG").exists()

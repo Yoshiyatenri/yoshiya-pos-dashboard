@@ -133,9 +133,14 @@ def write_zip(image_filenames, folder, zip_path):
 
 
 def remove_used_images(image_filenames, folder):
-    """ZIPに使用した画像ファイルをfolderから削除する。存在しないファイルはスキップする。"""
+    """ZIPに使用した画像ファイルをfolderから削除する。存在しないファイルはスキップする。削除できなかったファイル名のリストを返す。"""
+    failed = []
     for name in image_filenames:
-        (folder / name).unlink(missing_ok=True)
+        try:
+            (folder / name).unlink(missing_ok=True)
+        except OSError:
+            failed.append(name)
+    return failed
 
 
 def prompt_pattern(config):
@@ -227,11 +232,14 @@ def main():
 
     zip_path = up_dir / pattern["zip_filename"]
     write_zip(existing, base_dir, zip_path)
-    remove_used_images(existing, base_dir)
+    failed_deletions = remove_used_images(existing, base_dir)
+    if failed_deletions:
+        print(f"警告: 以下の画像ファイルは削除できませんでした（他のアプリで開いている可能性があります）: {', '.join(failed_deletions)}")
+    deleted = [name for name in existing if name not in failed_deletions]
 
     print(f"CSVを保存しました: {csv_path}（{len(rows)}件、例外{len(overrides)}件）")
     print(f"画像ZIPを保存しました: {zip_path}（{len(existing)}件）")
-    print(f"使用済み画像を削除しました: {', '.join(existing) if existing else 'なし'}")
+    print(f"使用済み画像を削除しました: {', '.join(deleted) if deleted else 'なし'}")
 
 
 if __name__ == "__main__":
