@@ -2,7 +2,7 @@ import json
 import zipfile
 from datetime import date, datetime
 
-from make_shufoo_csv import build_csv_rows, check_images_exist, collect_used_images, compute_period, format_datetime, load_config, parse_date, resolve_image_filename, resolve_picked_image, write_csv, write_zip
+from make_shufoo_csv import build_csv_rows, check_images_exist, collect_used_images, compute_period, format_datetime, load_config, parse_date, remove_used_images, resolve_image_filename, resolve_picked_image, write_csv, write_zip
 
 
 def test_load_config_reads_patterns_and_stores(tmp_path):
@@ -167,3 +167,18 @@ def test_resolve_picked_image_does_not_copy_when_already_in_base_dir(tmp_path):
     assert result == "chirashi.JPG"
     # コピー元と同一なので、ファイルは1つだけ存在する
     assert list(base_dir.iterdir()) == [picked_file]
+
+
+def test_remove_used_images_deletes_specified_files(tmp_path):
+    (tmp_path / "a.JPG").write_bytes(b"image-a")
+    (tmp_path / "b.JPG").write_bytes(b"image-b")
+
+    remove_used_images(["a.JPG"], tmp_path)
+
+    assert not (tmp_path / "a.JPG").exists()
+    assert (tmp_path / "b.JPG").exists()
+
+
+def test_remove_used_images_skips_missing_files_without_error(tmp_path):
+    # 存在しないファイル名を渡してもエラーにならないことを確認する
+    remove_used_images(["not_exist.JPG"], tmp_path)

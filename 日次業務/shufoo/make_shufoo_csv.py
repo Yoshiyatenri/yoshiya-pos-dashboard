@@ -132,6 +132,12 @@ def write_zip(image_filenames, folder, zip_path):
             z.write(folder / name, arcname=name)
 
 
+def remove_used_images(image_filenames, folder):
+    """ZIPに使用した画像ファイルをfolderから削除する。存在しないファイルはスキップする。"""
+    for name in image_filenames:
+        (folder / name).unlink(missing_ok=True)
+
+
 def prompt_pattern(config):
     """パターンを選択させ、(pattern_key, pattern_config)を返す。"""
     keys = list(config["patterns"].keys())
@@ -213,14 +219,19 @@ def main():
             print("処理を中止しました。")
             return
 
-    csv_path = base_dir / pattern["csv_filename"]
+    up_dir = base_dir / "UP用"
+    up_dir.mkdir(parents=True, exist_ok=True)
+
+    csv_path = up_dir / pattern["csv_filename"]
     write_csv(rows, csv_path)
 
-    zip_path = base_dir / pattern["zip_filename"]
+    zip_path = up_dir / pattern["zip_filename"]
     write_zip(existing, base_dir, zip_path)
+    remove_used_images(existing, base_dir)
 
     print(f"CSVを保存しました: {csv_path}（{len(rows)}件、例外{len(overrides)}件）")
     print(f"画像ZIPを保存しました: {zip_path}（{len(existing)}件）")
+    print(f"使用済み画像を削除しました: {', '.join(existing) if existing else 'なし'}")
 
 
 if __name__ == "__main__":
