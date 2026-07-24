@@ -9,6 +9,7 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime
 
+import math
 import pandas as pd
 
 try:
@@ -64,8 +65,15 @@ CREATE TABLE IF NOT EXISTS sales (
 )
 """
 
-CREATE_PG = CREATE_SQLITE.replace(
-    "INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY"
+CREATE_PG = (
+    CREATE_SQLITE
+    .replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+    .replace("sales_qty INTEGER", "sales_qty BIGINT")
+    .replace("sales_customers INTEGER", "sales_customers BIGINT")
+    .replace("markdown_qty INTEGER", "markdown_qty BIGINT")
+    .replace("special_discount_qty INTEGER", "special_discount_qty BIGINT")
+    .replace("return_qty INTEGER", "return_qty BIGINT")
+    .replace("return_bottle_qty INTEGER", "return_bottle_qty BIGINT")
 )
 
 
@@ -80,10 +88,17 @@ def _use_pg() -> bool:
 
 def import_csv(csv_path: str) -> int:
     log.info(f"取り込み開始: {csv_path}")
-    df = pd.read_csv(csv_path, encoding="shift_jis", header=0, names=COLUMNS)
+    df = pd.read_csv(csv_path, encoding="shift_jis", header=0, names=COLUMNS, dtype={"plu_code": str})
     df["pos_date"] = pd.to_datetime(df["pos_date"]).dt.strftime("%Y-%m-%d")
-    df = df.where(pd.notna(df), None)
-    rows = [tuple(row) for _, row in df.iterrows()]
+    def _clean(v):
+        # numpy型 → Pythonネイティブ型に変換し、NaNはNoneに変換
+        if hasattr(v, "item"):
+            v = v.item()
+        if isinstance(v, float) and math.isnan(v):
+            return None
+        return v
+
+    rows = [tuple(_clean(v) for v in row) for _, row in df.iterrows()]
 
     if _use_pg():
         _import_pg(rows)
