@@ -4,6 +4,7 @@ POSデータ 抽出ダッシュボード（SQLite / Supabase 自動切替）
 - config.json の db_url が設定済み → Supabase（クラウド）
 起動: streamlit run dashboard.py
 """
+import io
 import json
 import re
 import sqlite3
@@ -19,6 +20,14 @@ try:
     _psycopg2_ok = True
 except ImportError:
     _psycopg2_ok = False
+
+try:
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+    _openpyxl_ok = True
+except ImportError:
+    _openpyxl_ok = False
 
 BASE_DIR = Path(__file__).parent
 _cfg_path = BASE_DIR / "config.json"
@@ -227,6 +236,123 @@ def query_data(
         return pd.DataFrame()
 
 
+def query_bumon_analysis(start: str, end: str, stores_db: list[str]) -> pd.DataFrame:
+    """small_cat_name 別の部門別分析を返す"""
+    where = f"pos_date BETWEEN {_ph(1)} AND {_ph(1)} AND small_cat_name IS NOT NULL AND small_cat_name != ''"
+    params: list = [start, end]
+    if stores_db:
+        where += f" AND store_name IN ({_ph(len(stores_db))})"
+        params.extend(stores_db)
+    sql = f"""
+        SELECT
+            small_cat_name AS cat,
+            SUM(sales_qty)    AS qty,
+            SUM(sales_amount) AS amount,
+            SUM(gross_profit) AS profit,
+            COUNT(DISTINCT plu_code) AS sku_count
+        FROM sales
+        WHERE {where}
+        GROUP BY small_cat_name
+        ORDER BY SUM(sales_amount) DESC
+    """
+    try:
+        con = get_conn()
+        df = pd.read_sql_query(_fix(sql), con, params=params)
+        con.close()
+    except Exception as e:
+        st.error(f"部門別分析エラー: {e}")
+        return pd.DataFrame()
+    if df.empty:
+        return df
+
+    df = df.rename(columns={"cat": "カテゴリー", "qty": "売数", "amount": "売上",
+                             "profit": "荒利", "sku_count": "SKU数"})
+    df["荒利率"]    = (df["荒利"] / df["売上"]).where(df["売上"] > 0)
+    df["単価"]      = (df["売上"] / df["売数"]).where(df["売数"] > 0)
+    df["1SKU当売数"] = (df["売数"] / df["SKU数"]).where(df["SKU数"] > 0)
+    df["1SKU当売上"] = (df["売上"] / df["SKU数"]).where(df["SKU数"] > 0)
+    df["1SKU当荒利"] = (df["荒利"] / df["SKU数"]).where(df["SKU数"] > 0)
+    df["売上順位"]   = range(1, len(df) + 1)
+    df["荒利率順位"] = df["荒利率"].rank(ascending=False, method="min").astype("Int64")
+
+    total_売上  = df["売上"].sum()
+    total_荒利  = df["荒利"].sum()
+    total_売数  = df["売数"].sum()
+    total = pd.DataFrame([{
+        "カテゴリー": "合計",
+        "売数": total_売数,
+        "売上": total_売上,
+        "荒利": total_荒利,
+        "SKU数": df["SKU数"].sum(),
+        "荒利率": total_荒利 / total_売上 if total_売上 > 0 else None,
+        "単価":   total_売上 / total_売数 if total_売数 > 0 else None,
+        "1SKU当売数": None, "1SKU当売上": None, "1SKU当荒利": None,
+        "売上順位": None, "荒利率順位": None,
+    }])
+    return pd.concat([df, total], ignore_index=True)
+
+
+def make_bumon_excel(df: pd.DataFrame, store_label: str, start: str, end: str) -> bytes | None:
+    """部門別分析DataFrameをExcelに変換してbytesで返す"""
+    if not _openpyxl_ok:
+        return None
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "部門別集計"
+
+    # タイトル行
+    y, m = start[:4], str(int(start[5:7]))
+    ws["A1"] = f"{store_label}　{y}年{m}月　部門別実績（POSデータ集計）"
+    ws["A1"].font = Font(bold=True, size=12)
+
+    # ヘッダー行（3行目）
+    headers = ["カテゴリー", "売数", "売上", "荒利", "荒利率", "SKU数",
+               "単価", "1SKU当売数", "1SKU当売上", "1SKU当荒利", "売上順位", "荒利率順位"]
+    hfill = PatternFill("solid", fgColor="4472C4")
+    hfont = Font(bold=True, color="FFFFFF")
+    for ci, h in enumerate(headers, 1):
+        c = ws.cell(row=3, column=ci, value=h)
+        c.fill = hfill
+        c.font = hfont
+        c.alignment = Alignment(horizontal="center")
+
+    # データ行（4行目〜）
+    num_fmts = ["@", "#,##0", "#,##0", "#,##0.00", "0.0%",
+                "#,##0", "#,##0.000", "#,##0.000", "#,##0.00", "#,##0.000", "0", "0"]
+    for ri, (_, row) in enumerate(df.iterrows(), 4):
+        is_total = row["カテゴリー"] == "合計"
+        def _v(key, cast=float):
+            val = row.get(key)
+            return cast(val) if pd.notna(val) else None
+        vals = [
+            row["カテゴリー"],
+            _v("売数", int),
+            _v("売上", int),
+            _v("荒利"),
+            _v("荒利率"),
+            _v("SKU数", int),
+            _v("単価"),
+            _v("1SKU当売数"),
+            _v("1SKU当売上"),
+            _v("1SKU当荒利"),
+            _v("売上順位", int),
+            _v("荒利率順位", int),
+        ]
+        for ci, (v, fmt) in enumerate(zip(vals, num_fmts), 1):
+            cell = ws.cell(row=ri, column=ci, value=v)
+            cell.number_format = fmt
+            if is_total:
+                cell.font = Font(bold=True)
+
+    # 列幅
+    for ci, w in enumerate([14, 10, 12, 12, 8, 8, 12, 12, 14, 14, 8, 10], 1):
+        ws.column_dimensions[get_column_letter(ci)].width = w
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
 # ─── 接続チェック ─────────────────────────────────────────────────────────────
 if _use_pg():
     st.sidebar.success("☁️ Supabase（クラウド）接続中")
@@ -329,6 +455,7 @@ with st.sidebar:
 
     st.divider()
     extract_btn = st.button("🔍 抽出実行", use_container_width=True, type="primary")
+    bumon_btn   = st.button("📊 部門別分析レポート", use_container_width=True)
 
 # ─── 抽出処理 ────────────────────────────────────────────────────────────────
 if extract_btn:
@@ -401,8 +528,24 @@ if extract_btn:
         }
         st.session_state["period"] = (str(start_date), str(end_date))
 
-elif "df_result" not in st.session_state:
-    st.info("👈 左のサイドバーで条件を設定して「抽出実行」ボタンを押してください。")
+if bumon_btn:
+    if not selected_display:
+        st.warning("店舗を1つ以上選択してください。")
+    else:
+        with st.spinner("部門別データを集計中..."):
+            df_bumon = query_bumon_analysis(str(start_date), str(end_date), selected_stores_db)
+        if df_bumon.empty:
+            st.warning("該当データがありません。")
+        else:
+            st.session_state["bumon_result"] = df_bumon
+            st.session_state["bumon_meta"] = {
+                "stores": selected_display,
+                "start": str(start_date),
+                "end": str(end_date),
+            }
+
+if not extract_btn and "df_result" not in st.session_state and "bumon_result" not in st.session_state:
+    st.info("👈 左のサイドバーで条件を設定して「抽出実行」または「部門別分析レポート」ボタンを押してください。")
     st.stop()
 
 # ─── 結果表示 ────────────────────────────────────────────────────────────────
@@ -430,6 +573,35 @@ if "df_result" in st.session_state:
         file_name=f"pos_extract_{period[0]}_{period[1]}.csv",
         mime="text/csv",
     )
+
+# ─── 部門別分析レポート ───────────────────────────────────────────────────────
+if "bumon_result" in st.session_state:
+    df_b = st.session_state["bumon_result"]
+    meta = st.session_state["bumon_meta"]
+    store_label = "・".join(meta["stores"])
+    st.divider()
+    st.subheader(f"📊 部門別分析　{meta['start']} 〜 {meta['end']}")
+    st.caption(f"店舗: {store_label}")
+
+    # 表示用（荒利率を%表示）
+    df_disp = df_b.copy()
+    df_disp["荒利率"] = df_disp["荒利率"].apply(
+        lambda v: f"{v:.1%}" if pd.notna(v) else ""
+    )
+    st.dataframe(df_disp, use_container_width=True, hide_index=True)
+
+    if _openpyxl_ok:
+        excel_bytes = make_bumon_excel(df_b, store_label, meta["start"], meta["end"])
+        if excel_bytes:
+            fname = f"部門別分析_{store_label}_{meta['start'][:7]}.xlsx"
+            st.download_button(
+                label="📥 Excelダウンロード",
+                data=excel_bytes,
+                file_name=fname,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+    else:
+        st.warning("openpyxl がインストールされていません。`pip install openpyxl` を実行してください。")
 
 # ─── 管理者：アクセスログ ─────────────────────────────────────────────────────
 if st.session_state.get("is_admin") and _use_pg():
