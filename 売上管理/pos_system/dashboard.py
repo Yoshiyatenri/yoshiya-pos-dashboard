@@ -300,9 +300,13 @@ def make_bumon_excel(df: pd.DataFrame, store_label: str, start: str, end: str) -
     ws = wb.active
     ws.title = "部門別集計"
 
-    # タイトル行
-    y, m = start[:4], str(int(start[5:7]))
-    ws["A1"] = f"{store_label}　{y}年{m}月　部門別実績（POSデータ集計）"
+    # タイトル行（期間を反映）
+    if start[:7] == end[:7]:
+        y, m = start[:4], str(int(start[5:7]))
+        period_label = f"{y}年{m}月"
+    else:
+        period_label = f"{start}〜{end}"
+    ws["A1"] = f"{store_label}　{period_label}　部門別実績（POSデータ集計）"
     ws["A1"].font = Font(bold=True, size=12)
 
     # ヘッダー行（3行目）
@@ -593,7 +597,11 @@ if "bumon_result" in st.session_state:
     if _openpyxl_ok:
         excel_bytes = make_bumon_excel(df_b, store_label, meta["start"], meta["end"])
         if excel_bytes:
-            fname = f"部門別分析_{store_label}_{meta['start'][:7]}.xlsx"
+            if meta["start"][:7] == meta["end"][:7]:
+                period_str = meta["start"][:7]
+            else:
+                period_str = f"{meta['start']}_{meta['end']}"
+            fname = f"部門別分析_{store_label}_{period_str}.xlsx"
             st.download_button(
                 label="📥 Excelダウンロード",
                 data=excel_bytes,
