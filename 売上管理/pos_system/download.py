@@ -32,7 +32,7 @@ log = logging.getLogger(__name__)
 BASE_URL    = "https://www.netdoa-nx.jp"
 DL_LIST_URL = f"{BASE_URL}/DL/DL0010020.php"
 STORE_CODES = [1,2,3,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,100]
-POLL_INTERVAL_SEC = 120   # 2分ごとに確認
+POLL_INTERVAL_SEC = 15    # 15秒ごとに確認
 MAX_WAIT_MIN      = 25    # 最大25分待機
 
 
@@ -147,20 +147,27 @@ def get_dl_links(session: requests.Session) -> list[dict]:
     return links
 
 
-def poll_and_download(session: requests.Session, submitted_at: datetime, out_path: Path) -> bool:
+def poll_and_download(session: requests.Session, submitted_at: datetime, out_path: Path, date_str: str = "") -> bool:
     """ジョブ送信後に新しいCSVリンクが現れるまでポーリングしてダウンロード"""
     polls = MAX_WAIT_MIN * 60 // POLL_INTERVAL_SEC
+    # "20260729" → "2026/07/29" 形式に変換（リンクタイトル内の日付と照合）
+    date_fmt = f"{date_str[:4]}/{date_str[4:6]}/{date_str[6:]}" if len(date_str) == 8 else ""
 
     for attempt in range(int(polls)):
         log.info(f"DLページ確認 {attempt + 1}/{int(polls)} 回目...")
-        links = get_dl_links(session)
+        try:
+            links = get_dl_links(session)
+        except Exception as e:
+            log.warning(f"DLページ取得エラー（次回リトライ）: {e}")
+            time.sleep(POLL_INTERVAL_SEC)
+            continue
 
-        # 送信時刻以降 かつ 商品売上実績(日別)のみ対象
+        # 対象日付を含む 商品売上実績(日別) のリンクを検索
         new_links = [
             lnk for lnk in links
-            if lnk["created_at"] >= submitted_at - timedelta(minutes=2)
-            and "商品売上実績" in lnk["title"]
+            if "商品売上実績" in lnk["title"]
             and "日別" in lnk["title"]
+            and (date_fmt in lnk["title"] if date_fmt else lnk["created_at"] >= submitted_at - timedelta(minutes=2))
         ]
 
         if new_links:
@@ -211,7 +218,7 @@ def run(target_date: datetime | None = None) -> str | None:
 
     log.info(f"ジョブ送信完了 ({submitted_at.strftime('%H:%M:%S')})。DLページを定期確認します...")
 
-    if poll_and_download(session, submitted_at, out_path):
+    if poll_and_download(session, submitted_at, out_path, date_str):
         return str(out_path)
     return None
 

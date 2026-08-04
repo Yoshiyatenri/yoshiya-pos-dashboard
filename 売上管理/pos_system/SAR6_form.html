@@ -1,0 +1,230 @@
+<HTML>
+<HEAD>
+<TITLE>取引レポート(レジ別)</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=x-sjis">
+<LINK REL="stylesheet" TYPE="text/css" HREF="/css/text.css">
+<script language="JavaScript" src="/js/changeImage.js"></script>
+<script language="JavaScript" src="/js/subfunctions.js"></script>
+	<SCRIPT Language="JavaScript">
+<!--
+/**
+* 検索条件の設定(JAVASCRIPT関数)
+* 検索条件を設定し、送信する。
+*/
+function SerchSubmit(streFlg,streCd,clsFlg,clsCd,smlClsCd,periodFlg,
+		     yearFrom,monthFrom,dayFrom,yearTo,monthTo,dayTo,
+		     sortFlg,orderByFlg,KeyFlg,uri,SerialNo){
+
+	document.SrchForm.ws_streFlg.value	= streFlg;
+	document.SrchForm.ws_streCd.value	= streCd;
+	document.SrchForm.ws_clsFlg.value	= clsFlg;
+	document.SrchForm.ws_clsCd.value	= clsCd;
+	document.SrchForm.ws_smlClsCd.value	= smlClsCd;
+	document.SrchForm.ws_periodFlg.value	= periodFlg;
+	document.SrchForm.ws_yearFrom.value	= yearFrom;
+	document.SrchForm.ws_monthFrom.value	= monthFrom;
+	document.SrchForm.ws_dayFrom.value	= dayFrom;
+	document.SrchForm.ws_yearTo.value	= yearTo;
+	document.SrchForm.ws_monthTo.value	= monthTo;
+	document.SrchForm.ws_dayTo.value	= dayTo;
+	document.SrchForm.ws_sortFlg.value	= sortFlg;
+	document.SrchForm.ws_orderByFlg.value	= orderByFlg;
+	document.SrchForm.ws_KeyFlg.value	= KeyFlg;
+	document.SrchForm.ws_SerialNo.value	= SerialNo;
+	document.SrchForm.action = uri;
+	document.SrchForm.method = "post";
+	document.SrchForm.target = "_top";
+	document.SrchForm.submit();
+}
+
+// -->
+</SCRIPT>
+<!--cross-->
+<STYLE type="text/css">
+<!--
+BODY{
+	font-family: MS PGothic;
+	font-size:12px;
+}
+-->
+</STYLE>
+<SCRIPT Language="JavaScript">
+<!--
+//検索画面オープン
+function srchWinOpen(url){
+	url = url + '?ws_bussId=7&ws_programID=SAR6';
+url = url + '&ws_clsPermit=0';
+	window.open(url, "teraoka_search","width=860,height=583");
+	//var retVal = showModalDialog(url, 'teraoka_favorite', "dialogWidth:860px;dialogHeight:583px");
+	//alert(retVal);
+}
+
+// -->
+</SCRIPT>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF" LEFTMARGIN="0" MARGINWIDTH="0" TOPMARGIN="0" MARGINHEIGHT="0"  ><TABLE  BORDER="0" CELLPADDING="0" CELLSPACING="0"  width="100%" height="100%" >
+<TR>
+<TD><table border="0" cellpadding="0" cellspacing="0" width="100%" BGCOLOR="#cbe3f5">
+<tr>
+<TD ROWSPAN="3"><IMG SRC="/images/menubar_logo.jpg" WIDTH="129" HEIGHT="70" BORDER="0"></TD>
+<TD ROWSPAN="3"><IMG SRC="/images/line.gif" WIDTH="6" HEIGHT="70" BORDER="0"></TD>
+<TD><A HREF="/HM/HM0010010.php?ws_bussId=1" target="_top" ONMOUSEOVER="chgImg('HM','/images/HM_on.gif')" ONMOUSEOUT="chgImg('HM','/images/HM_off.gif')"><IMG SRC="/images/HM_off.gif" WIDTH="64" HEIGHT="34" BORDER="0" NAME="HM" ALT="HOME"></A></TD>
+<TD><A HREF="/SA/SA0010010.php?ws_bussId=7" target="_top"><IMG SRC="/images/SA_in.gif" WIDTH="64" HEIGHT="34" BORDER="0" NAME="SA" ALT="販売分析"></A></TD>
+<TD><A HREF="/PA/PA0010010.php?ws_bussId=8" target="_top" ONMOUSEOVER="chgImg('PA','/images/PA_on.gif')" ONMOUSEOUT="chgImg('PA','/images/PA_off.gif')"><IMG SRC="/images/PA_off.gif" WIDTH="64" HEIGHT="34" BORDER="0" NAME="PA" ALT="商品分析"></A></TD>
+<TD><IMG SRC="/images/i_empty.gif" WIDTH="64" HEIGHT="34" BORDER="0"></TD>
+<TD><IMG SRC="/images/i_empty.gif" WIDTH="64" HEIGHT="34" BORDER="0"></TD>
+<TD><IMG SRC="/images/i_empty.gif" WIDTH="64" HEIGHT="34" BORDER="0"></TD>
+<TD><IMG SRC="/images/i_empty.gif" WIDTH="64" HEIGHT="34" BORDER="0"></TD>
+<TD><IMG SRC="/images/i_empty.gif" WIDTH="64" HEIGHT="34" BORDER="0"></TD>
+<TD><A HREF="/BG/BG0010010.php?ws_bussId=9" target="_top" ONMOUSEOVER="chgImg('BG','/images/BG_on.gif')" ONMOUSEOUT="chgImg('BG','/images/BG_off.gif')"><IMG SRC="/images/BG_off.gif" WIDTH="64" HEIGHT="34" BORDER="0" NAME="BG" ALT="予算設定"></A></TD>
+<TD><A HREF="/RG/RG0010010.php?ws_bussId=5" target="_top" ONMOUSEOVER="chgImg('RG','/images/RG_on.gif')" ONMOUSEOUT="chgImg('RG','/images/RG_off.gif')"><IMG SRC="/images/RG_off.gif" WIDTH="64" HEIGHT="34" BORDER="0" NAME="RG" ALT="レジ関連"></A></TD>
+<TD><A HREF="/BS/BS0010010.php?ws_bussId=4" target="_top" ONMOUSEOVER="chgImg('BS','/images/BS_on.gif')" ONMOUSEOUT="chgImg('BS','/images/BS_off.gif')"><IMG SRC="/images/BS_off.gif" WIDTH="64" HEIGHT="34" BORDER="0" NAME="BS" ALT="基本設定"></A></TD>
+<td ROWSPAN="3"><IMG SRC="/images/line3.jpg" WIDTH="7" HEIGHT="70" BORDER="0"><td>
+<TD ROWSPAN="3" WIDTH="100%" BGCOLOR="#cbe3f5" ALIGN="right">
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="4">
+<tr>
+<TD CLASS="text00" ALIGN="right">2269:株式会社　吉寿屋<BR>
+お菓子のデパート　よしや　伏見<BR>
+吉寿屋様本部</TD>
+<TD CLASS="text00" ALIGN="right"></TD>
+</tr>
+<tr>
+<td align="right">
+<A HREF="/" target="_top"><IMG SRC="/images/i_logout.gif" WIDTH="87" HEIGHT="20" BORDER="0"></A></td>
+<td align="right"><td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<TD COLSPAN="11" BACKGROUND="/images/line2.gif"><IMG SRC="/images/1x1.gif" WIDTH="1" HEIGHT="2" BORDER="0"></TD></tr>
+<tr>
+<TD><IMG SRC="/images/i_empty.gif" WIDTH="64" HEIGHT="34" BORDER="0"></TD>
+<TD><A HREF="/IT/IT0010010.php?ws_bussId=3" target="_top" ONMOUSEOVER="chgImg('IT','/images/IT_on.gif')" ONMOUSEOUT="chgImg('IT','/images/IT_off.gif')"><IMG SRC="/images/IT_off.gif" WIDTH="64" HEIGHT="34" BORDER="0" NAME="IT" ALT="商品設定"></A></TD>
+<TD><IMG SRC="/images/i_empty.gif" WIDTH="64" HEIGHT="34" BORDER="0"></TD>
+<TD><IMG SRC="/images/i_empty.gif" WIDTH="64" HEIGHT="34" BORDER="0"></TD>
+<TD><IMG SRC="/images/i_empty.gif" WIDTH="64" HEIGHT="34" BORDER="0"></TD>
+<TD><IMG SRC="/images/i_empty.gif" WIDTH="64" HEIGHT="34" BORDER="0"></TD>
+<TD><IMG SRC="/images/i_empty.gif" WIDTH="64" HEIGHT="34" BORDER="0"></TD>
+<TD><IMG SRC="/images/i_empty.gif" WIDTH="64" HEIGHT="34" BORDER="0"></TD>
+<TD><IMG SRC="/images/i_empty.gif" WIDTH="64" HEIGHT="34" BORDER="0"></TD>
+<TD><A HREF="/DL/DL0010010.php?ws_bussId=10" target="_top" ONMOUSEOVER="chgImg('DL','/images/DL_on.gif')" ONMOUSEOUT="chgImg('DL','/images/DL_off.gif')"><IMG SRC="/images/DL_off.gif" WIDTH="64" HEIGHT="34" BORDER="0" NAME="DL" ALT="ダウンロード"></A></TD>
+<TD><A HREF="/MT/MT0010010.php?ws_bussId=6" target="_top" ONMOUSEOVER="chgImg('MT','/images/MT_on.gif')" ONMOUSEOUT="chgImg('MT','/images/MT_off.gif')"><IMG SRC="/images/MT_off.gif" WIDTH="64" HEIGHT="34" BORDER="0" NAME="MT" ALT="メンテナンス"></A></TD>
+</tr>
+<tr>
+<td COLSPAN="16" BACKGROUND="/images/head.gif"><IMG SRC="/images/1x1.gif" WIDTH="1" HEIGHT="1" BORDER="0" VSPACE="4"></td></tr>
+</table>
+</TD>
+</TR>
+
+
+<TR>
+<TD>
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0" WIDTH="100%" BACKGROUND="/images/third/title_back.jpg"><FORM name="SrchForm">
+<INPUT type="hidden" name="ws_actType" value="2">
+<INPUT type="hidden" name="ws_streFlg">
+<INPUT type="hidden" name="ws_streCd">
+<INPUT type="hidden" name="ws_clsFlg">
+<INPUT type="hidden" name="ws_clsCd">
+<INPUT type="hidden" name="ws_smlClsCd">
+<INPUT type="hidden" name="ws_periodFlg">
+<INPUT type="hidden" name="ws_yearFrom">
+<INPUT type="hidden" name="ws_monthFrom">
+<INPUT type="hidden" name="ws_dayFrom">
+<INPUT type="hidden" name="ws_yearTo">
+<INPUT type="hidden" name="ws_monthTo">
+<INPUT type="hidden" name="ws_dayTo">
+<INPUT type="hidden" name="ws_weekStartFrom">
+<INPUT type="hidden" name="ws_weekStartTo">
+<INPUT type="hidden" name="ws_KeyFlg">
+<INPUT type="hidden" name="ws_sortFlg">
+<INPUT type="hidden" name="ws_orderByFlg">
+<INPUT type="hidden" name="ws_bussId" value="7">
+<INPUT type="hidden" name="ws_SerialNo">
+</FORM>
+<TR>
+<TD ROWSPAN="2"><IMG SRC="/images/third/title_sales.gif" WIDTH="218" HEIGHT="32" BORDER="0"></TD>
+<TD WIDTH="100%"><IMG SRC="/images/1x1.gif" WIDTH="1" HEIGHT="1" BORDER="0" VSPACE="5"></TD><TD ROWSPAN="2" ALIGN="right" WIDTH="100%"><A HREF="JavaScript:favoriteWinOpen('/HM/HM0040010.php?ws_bussId=7&ws_myBussSerialNo=34&ws_myProgId=SAR6&ws_clsPermit=0');" onmouseover="chgImg('add1','/images/third/i_add_on.gif')" onmouseout="chgImg('add1','/images/third/i_add_off.gif')"><IMG SRC="/images/third/i_add_off.gif" WIDTH="67" HEIGHT="32" BORDER="0" ALT="お気に入りに追加" NAME="add1"></A>
+</TD>
+</TR>
+<TR>
+<TD WIDTH="100%" NOWRAP>
+
+</TD>
+</TR>
+</TABLE>
+</TD>
+</TR>
+
+
+<TR>
+<TD>
+
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0" WIDTH="100%">
+<TR>
+<TD><IMG SRC="/images/third/bkh_01.jpg" WIDTH="34" HEIGHT="4" BORDER="0"></TD><TD ROWSPAN="2"><A HREF="JavaScript:srchWinOpen('SAR6_SW0010010.php')" onmouseover="chgImg('serch1','/images/third/i_store_on.gif')" onmouseout="chgImg('serch1','/images/third/i_store.gif')"><IMG SRC="/images/third/i_store.gif" WIDTH="34" HEIGHT="30" BORDER="0" NAME="serch1" ALT="店舗検索"></A></TD>
+<TD BACKGROUND="/images/third/bkh_02.jpg" WIDTH="212"><IMG SRC="/images/third/bkh_02.jpg" WIDTH="212" HEIGHT="4" BORDER="0"></TD>
+<TD ROWSPAN="5"><IMG SRC="/images/third/bk_line_01.gif" WIDTH="3" HEIGHT="63" BORDER="0"></TD>
+<TD><IMG SRC="/images/third/bkh_03.jpg" WIDTH="7" HEIGHT="4" BORDER="0"></TD><TD ROWSPAN="2"><IMG SRC="/images/third/i_class.gif" WIDTH="34" HEIGHT="30" BORDER="0" NAME="serch2" ALT="分類検索"></TD>
+<TD WIDTH="240" BACKGROUND="/images/third/bkh_04.jpg"><IMG SRC="/images/third/bkh_04.jpg" WIDTH="240" HEIGHT="4" BORDER="0"></TD>
+<TD ROWSPAN="5"><IMG SRC="/images/third/bk_line_02.gif" WIDTH="2" HEIGHT="63" BORDER="0"></TD>
+<TD><IMG SRC="/images/third/bkh_05.jpg" WIDTH="7" HEIGHT="4" BORDER="0"></TD><TD ROWSPAN="2"><A HREF="JavaScript:srchWinOpen('SAR6_SW0030010.php')" onmouseover="chgImg('serch3','/images/third/i_time_on.gif')" onmouseout="chgImg('serch3','/images/third/i_time.gif')"><IMG SRC="/images/third/i_time.gif" WIDTH="34" HEIGHT="30" BORDER="0" NAME="serch3" ALT="時間帯検索"></A></TD>
+<TD WIDTH="240" BACKGROUND="/images/third/bkh_06.jpg"><IMG SRC="/images/third/bkh_06.jpg" WIDTH="240" HEIGHT="4" BORDER="0"></TD>
+<TD ROWSPAN="5"><IMG SRC="/images/third/bk_line_03.gif" WIDTH="2" HEIGHT="63" BORDER="0"></TD>
+<TD WIDTH="100%" BACKGROUND="/images/third/bkh_07.jpg"><IMG SRC="/images/third/bkh_07.jpg" BORDER="0" WIDTH="144" HEIGHT="4"></TD>
+</TR>
+<TR>
+<TD><IMG SRC="/images/third/bku_01.jpg" WIDTH="34" HEIGHT="26" BORDER="0"></TD>
+<TD BACKGROUND="/images/third/bku_02.jpg" WIDTH="212"></TD>
+<TD><IMG SRC="/images/third/bku_03.jpg" WIDTH="7" HEIGHT="26" BORDER="0"></TD>
+<TD WIDTH="240" BACKGROUND="/images/third/bku_04.jpg"></TD>
+<TD><IMG SRC="/images/third/bku_05.jpg" WIDTH="7" HEIGHT="26" BORDER="0"></TD>
+<TD WIDTH="240" BACKGROUND="/images/third/bku_06.jpg">2026/07/13(月)〜2026/07/13(月)</TD><TD WIDTH="100%" BACKGROUND="/images/third/bku_07.jpg"><A HREF="JavaScript:srchWinOpen('SAR6_SW0040010.php')"  onmouseover="chgImg('serch4','/images/third/i_serch_on.gif')" onmouseout="chgImg('serch4','/images/third/i_serch_off.gif')"><IMG SRC="/images/third/i_serch_off.gif" HEIGHT="26" BORDER="0" HSPACE="3" WIDTH="56" NAME="serch4" ALT="検索設定画面"></A></TD>
+</TR>
+<TR>
+<TD COLSPAN="3" BACKGROUND="/images/third/bkm_01.gif"><IMG SRC="/images/third/bkm_01.gif" WIDTH="280" HEIGHT="5" BORDER="0"></TD><TD COLSPAN="3" BACKGROUND="/images/third/bkm_02.gif"><IMG SRC="/images/third/bkm_02.gif" WIDTH="280" HEIGHT="5" BORDER="0"></TD><TD COLSPAN="3" BACKGROUND="/images/third/bkm_03.gif"><IMG SRC="/images/third/bkm_03.gif" WIDTH="280" HEIGHT="5" BORDER="0"></TD><TD BACKGROUND="/images/third/bkm_04.gif" WIDTH="100%"><IMG SRC="/images/third/bkm_04.gif" WIDTH="144" HEIGHT="5" BORDER="0"></TD>
+</TR>
+<TR><TD VALIGN="top"><IMG SRC="/images/third/bkd_01.jpg" WIDTH="34" HEIGHT="24" BORDER="0"></TD><TD COLSPAN="2" BACKGROUND="/images/third/bkd_02.jpg" VALIGN="top"><IMG src="/images/third/i_store_01_on.gif" width="43" height="24" alt="全店" name="stre1" border="0"><IMG src="/images/third/i_store_02_out.gif" width="49" height="24" alt="店舗グループ" name="stre2" border="0"><IMG src="/images/third/i_store_03_out.gif" width="43" height="24" alt="店舗" name="stre3" border="0"></TD><TD VALIGN="top"><IMG SRC="/images/third/bkd_03.jpg" WIDTH="7" HEIGHT="24" BORDER="0"></TD><TD COLSPAN="2" BACKGROUND="/images/third/bkd_04.jpg" VALIGN="top"></TD><TD VALIGN="top"><IMG SRC="/images/third/bkd_05.jpg" WIDTH="7" HEIGHT="24" BORDER="0"></TD><TD COLSPAN="2" BACKGROUND="/images/third/bkd_06.jpg" VALIGN="top"><A href="JavaScript:SerchSubmit('1','1','3','0','0','4','2026','07','13','2026','07','13','0','1','','./SAR60010010.php','1')" onmouseover="chgImg('period4','/images/third/i_time_01_on.gif')" onmouseout="chgImg('period4','/images/third/i_time_01_off.gif')"><IMG src="/images/third/i_time_01_off.gif" width="43" height="24" alt="月" name="period4" border="0"></A><A href="JavaScript:SerchSubmit('1','1','3','0','0','3','2026','07','13','2026','07','13','0','1','','./SAR60010010.php','1')" onmouseover="chgImg('period3','/images/third/i_time_02_on.gif')" onmouseout="chgImg('period3','/images/third/i_time_02_off.gif')"><IMG src="/images/third/i_time_02_off.gif" width="43" height="24" alt="週" name="period3" border="0"></A><IMG src="/images/third/i_time_03_on.gif" width="43" height="24" alt="日" name="period2" border="0"></TD><TD WIDTH="100%" BACKGROUND="/images/third/bkd_07.jpg" VALIGN="top" NOWRAP>
+
+<A HREF="JavaScript:openPdfWin('./SAR60010030.php?gs_programId=SAR6&gs_loginCompCd=2269&gs_loginStreCd=1&gs_loginUserId=yoshiya&gs_loginUserSerialCd=8313&gs_streFlg=1&gs_streCd=1&gs_periodFlg=2&gs_yearFrom=2026&gs_monthFrom=07&gs_dayFrom=13&gs_yearTo=2026&gs_monthTo=07&gs_dayTo=13&gs_weekStartFrom=2026/07/12&gs_weekStartTo=2026/07/18&gs_cstCnt=&gs_FileName=csv&gs_SerialNo=1&gs_flg=2','CSV')" onmouseover="chgImg('output2','/images/third/i_csv_on.gif')" onmouseout="chgImg('output2','/images/third/i_csv_off.gif')"><IMG SRC="/images/third/i_csv_off.gif" WIDTH="46" HEIGHT="23" BORDER="0" ALT="CSV" NAME="output2" HSPACE="4"></A><A HREF="JavaScript:openPdfWin('./SAR60010030.php?gs_programId=SAR6&gs_loginCompCd=2269&gs_loginStreCd=1&gs_loginUserId=yoshiya&gs_loginUserSerialCd=8313&gs_streFlg=1&gs_streCd=1&gs_periodFlg=2&gs_yearFrom=2026&gs_monthFrom=07&gs_dayFrom=13&gs_yearTo=2026&gs_monthTo=07&gs_dayTo=13&gs_weekStartFrom=2026/07/12&gs_weekStartTo=2026/07/18&gs_cstCnt=&gs_FileName=pdf&gs_SerialNo=1&gs_flg=1','PDF')" onmouseover="chgImg('output1','/images/third/i_pdf_on.gif')" onmouseout="chgImg('output1','/images/third/i_pdf_off.gif')"><IMG SRC="/images/third/i_pdf_off.gif" WIDTH="46" HEIGHT="23" BORDER="0" ALT="PDF" NAME="output1" HSPACE="4"></A></TD></TR>
+<TR><TD VALIGN="top" COLSPAN="3" BACKGROUND="/images/third/bkf_01.gif"><IMG SRC="/images/third/bkf_01.gif" WIDTH="280" HEIGHT="4" BORDER="0"></TD><TD VALIGN="top" COLSPAN="3" BACKGROUND="/images/third/bkf_02.gif"><IMG SRC="/images/third/bkf_02.gif" WIDTH="280" HEIGHT="4" BORDER="0"></TD><TD BACKGROUND="/images/third/bkf_03.gif" VALIGN="top" COLSPAN="3"><IMG SRC="/images/third/bkf_03.gif" WIDTH="280" HEIGHT="4" BORDER="0"></TD><TD WIDTH="100%" VALIGN="top" BACKGROUND="/images/third/bkf_04.gif"><IMG SRC="/images/third/bkf_04.gif" WIDTH="144" HEIGHT="4" BORDER="0"></TD></TR></TABLE>
+</TD></TR>
+
+
+<TR>
+<TD>
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0" WIDTH="100%">
+<!--
+	<TR>
+	<TD BACKGROUND="/images/third/calendar_bk_05.jpg" WIDTH="100%"><IMG SRC="/images/third/calendar_bk_05.jpg" BORDER="0" HEIGHT="15" WIDTH="714"></TD>
+	</TR>
+-->
+	<TR>
+		<TD BACKGROUND="/images/third/calendar_bk_05.jpg" ALIGN="right" WIDTH="100%">
+		<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0">
+			<TR>
+				<TD> <A HREF="JavaScript:SerchSubmit('1','1','3','0','0','2','2026','07','13','2026','07','13','0','1','','./SAR60010010.php','0')" onmouseover="chgImg('SAR6','/images/third/SAR601_btn_on.gif')" onmouseout="chgImg('SAR6','/images/third/SAR601_btn_off.gif')"><IMG SRC="/images/third/SAR601_btn_off.gif" WIDTH="60" HEIGHT="20" BORDER="0" ALT="店舗別" NAME="SAR6"></A>   <IMG SRC="/images/third/SAR602_btn_in.gif" WIDTH="60" HEIGHT="20" BORDER="0" ALT="レジ別" NAME="SAR6">  <A HREF="JavaScript:SerchSubmit('1','1','3','0','0','2','2026','07','13','2026','07','13','0','1','','./SAR60010010.php','2')" onmouseover="chgImg('SAR6','/images/third/SAR603_btn_on.gif')" onmouseout="chgImg('SAR6','/images/third/SAR603_btn_off.gif')"><IMG SRC="/images/third/SAR603_btn_off.gif" WIDTH="60" HEIGHT="20" BORDER="0" ALT="扱者別" NAME="SAR6"></A>  </TD>
+				<TD><IMG SRC="/images/1x1.gif" WIDTH="1" HEIGHT="1" BORDER="0" HSPACE="25"></TD>
+			</TR>
+		</TABLE>
+		</TD>
+	</TR>
+</TABLE>
+</TD>
+</TR>
+<!--ここから インラインフレーム-->
+<TR>
+<TD width="100%" colspan="3" height="100%">
+<TABLE BORDER="0" CELLPADDING="0" CELLSPACING="0"  width = "100%"  height="100%">
+<TD width="100%" colspan="3" height="100%">
+<IFRAME src="./SAR60010020.php?ws_streFlg=1&ws_streCd=1&ws_clsFlg=3&ws_clsCd=&ws_smlClsCd=0&ws_periodFlg=2&ws_yearFrom=2026&ws_monthFrom=07&ws_dayFrom=13&ws_yearTo=2026&ws_monthTo=07&ws_dayTo=13&ws_sortFlg=0&ws_orderByFlg=1&ws_weekStartFrom=2026/07/12&ws_weekStartTo=2026/07/18&ws_cstCnt=&ws_bussId=7&DB_flg=1&APL_flg=1&promUseFlg=&ws_SerialNo=1" name="list" width="100%" height="100%"  scrolling="AUTO" frameborder="0" marginwidth="0" marginheight="0" border="0">
+</IFAME>
+</TD>
+</TABLE>
+</TD>
+</TR>
+<!--ここまで インラインフレーム-->
+
+</TABLE>
+</BODY>
+</HTML>

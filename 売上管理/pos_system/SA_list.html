@@ -1,0 +1,393 @@
+<HTML>
+<HEAD>
+<TITLE>netDoA</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=x-sjis">
+<LINK REL="stylesheet" TYPE="text/css" HREF="/css/menu.css">
+<SCRIPT LANGUAGE="JavaScript" SRC="/js/changeImage.js"></SCRIPT>
+<SCRIPT>
+function na_open_window(name, url, left, top, width, height, toolbar, menubar, statusbar, scrollbar, resizable)
+{
+  toolbar_str = toolbar ? 'yes' : 'no';
+  menubar_str = menubar ? 'yes' : 'no';
+  statusbar_str = statusbar ? 'yes' : 'no';
+  scrollbar_str = scrollbar ? 'yes' : 'no';
+  resizable_str = resizable ? 'yes' : 'no';
+  window.open(url, name, 'left='+left+',top='+top+',width='+width+',height='+height+',toolbar='+toolbar_str+',menubar='+menubar_str+',status='+statusbar_str+',scrollbars='+scrollbar_str+',resizable='+resizable_str);
+}
+</SCRIPT>
+<STYLE TYPE="text/css">
+<!--
+#layer1 { overflow-y: auto; position: absolute; top: 112px; left: 0px; width: 100%; height: 527px; visibility: visible;}
+#layer2 { position: absolute; top: 150px; left: 0px; width: 100%; height: 875px; visibility: visible;}
+
+#layerTAB {
+    position:relative;
+    width:800px;
+    height: 30px;
+    left: -60px;
+    text-align:left;
+    margin:0px;
+    padding:0px;
+    font-size:0px;
+    display:flex;
+}
+
+#layerTAB img{
+	vertical-align:bottom;
+}
+
+html*#layerTAB {
+	left: 0px;
+}
+
+#contents_menu_back{
+	width:920px;
+	height:451px;
+	position:relative;
+	padding-top:10px;
+	text-align:left;
+}
+
+#contents_menu_back img{
+	vertical-align:bottom;
+}
+
+.menu_frame{
+	position:absolute;
+}
+
+#second_menu div{
+	position:absolute;
+	width:340px;
+	height:180px;
+}
+
+.menu_top{
+	top:0px;
+}
+
+.menu_left{
+	left:0px;
+}
+
+.menu_right{
+	right: 0px;
+}
+
+.menu_bottom{
+	bottom: 0px;
+}
+
+.menu_list{
+	margin: 0px;
+	padding: 0px;
+	list-style: none;
+	width:100%;
+}
+
+.menu_list2{
+	margin: 0px;
+	padding: 0px;
+	list-style: none;
+	width:50%;
+	float:left
+}
+
+.menu_list li{
+	display: inline;
+	padding: 0px;
+	margin: 0px;
+	width:100%;
+	display:inline-block;
+	font-size:14px;
+	margin-left:20px;
+	margin-top:10px;
+	height:20px;
+}
+
+.menu_list2 li{
+	display: inline;
+	padding: 0px;
+	margin: 0px;
+	width:100%;
+	display:inline-block;
+	font-size:14px;
+	margin-left:20px;
+	margin-top:10px;
+	height:20px;
+}
+
+.tab_top_02 {
+  position: relative;
+}
+.tab_top_02 .active {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  transition: 0s;
+}
+.tab_top_02:hover .active {
+  opacity: 1;
+}
+
+.tab_top_03 {
+  position: relative;
+}
+.tab_top_03 .active {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  transition: 0s;
+}
+.tab_top_03:hover .active {
+  opacity: 1;
+}
+
+
+.alpha50{
+	opacity:0.5;
+	filter:alpha(opacity=50);
+}
+
+/* 背景色の透過（IE6〜全対応）*/
+#back_yelow{
+	background:rgba(255,255,0,0.1);
+	filter:progid:DXImageTransform.Microsoft.Gradient(GradientType=0,StartColorStr=#19FFFF00,EndColorStr=#19FFFF00);　/* IE7以下 */
+	-ms-filter: "progid:DXImageTransform.Microsoft.Gradient(GradientType=0,StartColorStr=#19FFFF00,EndColorStr=#19FFFF00)";　/* IE8以上 */
+}
+
+#back_blue{
+	background:rgba(96,96,255,0.1);
+	filter:progid:DXImageTransform.Microsoft.Gradient(GradientType=0,StartColorStr=#196060FF,EndColorStr=#196060FF);　/* IE7以下 */
+	-ms-filter: "progid:DXImageTransform.Microsoft.Gradient(GradientType=0,StartColorStr=#196060FF,EndColorStr=#196060FF)";　/* IE8以上 */
+}
+
+/* 背景色の透過（IE6〜全対応）*/
+#contents_menu_back{
+	background:rgba(255,255,255,0.8);
+	filter:progid:DXImageTransform.Microsoft.Gradient(GradientType=0,StartColorStr=#CCFFFFFF,EndColorStr=#CCFFFFFF);　/* IE7以下 */
+	-ms-filter: "progid:DXImageTransform.Microsoft.Gradient(GradientType=0,StartColorStr=#CCFFFFFF,EndColorStr=#CCFFFFFF)";　/* IE8以上 */
+}
+
+/*IE9で透過処理が重複しないようにするために必要*/
+#contents_menu_back,#back_yelow,#back_blue:not(:target){
+	filter: none;
+	-ms-filter: none;
+}
+
+body{
+	text-align:center;
+}
+-->
+</STYLE>
+
+<script language="JavaScript">
+<!--
+/************************
+ * JavaScript処理
+*************************/
+
+/*
+// 解像度によるＤＩＶ修正
+function fc_div_layout(){
+	document.getElementById("layer1").style.height = eval(document.body.clientHeight + "-" + 115);
+}
+window.onresize = fc_div_layout;
+*/
+
+//aタグ,Enter+Clickの誤爆を防ぐ
+function EnterPermit(){
+	var k = event.keyCode;
+	if(k == 13){
+		//var obj = event.target;
+		//console.log(obj);
+		//alert(obj);
+		return false;
+	}
+}
+
+window.onkeydown = EnterPermit;
+
+//-->
+</script>
+</HEAD>
+<BODY bgcolor="#044ECD" LEFTMARGIN="0" MARGINWIDTH="0" TOPMARGIN="0" MARGINHEIGHT="0">
+<div style="text-align:left;">
+<IMG SRC="/images/second/title_sa.jpg" WIDTH="976" HEIGHT="31" BORDER="0" ALT="販売分析">
+</div>
+
+<DIV align="center">
+<!-- タブ -->
+<DIV ID="layerTAB" style="text-align:left;">
+
+        <IMG SRC="sa_tab_on_01.jpg" WIDTH="230" HEIGHT="30" BORDER="0" VSPACE="0">
+
+        <div class="tab_top_02">
+		<A target="_top" href="/SA/SA0010010.php?ws_bussId=7&ws_tabPage=1"><IMG SRC="sa_tab_off_02.jpg" WIDTH="230" HEIGHT="30" BORBDER="0" VSPACE="0"></A>
+        <A target="_top" href="/SA/SA0010010.php?ws_bussId=7&ws_tabPage=1"><IMG SRC="sa_tab_over_02.jpg" WIDTH="230" HEIGHT="30" BORBDER="0" VSPACE="0" class="active"></A>
+        </div>
+
+        <div class="tab_top_03">
+        <A target="_top" href="/SA/SA0010010.php?ws_bussId=7&ws_tabPage=2"><IMG SRC="sa_tab_off_03.jpg" WIDTH="230" HEIGHT="30" BORDER="0" VSPACE="0"></A>	         <A target="_top" href="/SA/SA0010010.php?ws_bussId=7&ws_tabPage=2"><IMG SRC="sa_tab_over_03.jpg" WIDTH="230" HEIGHT="30" BORDER="0" VSPACE="0" class="active"></A>	         </div>
+</DIV>
+
+<div id="contents_menu_back">
+	<!-- 外枠線 -->
+	<IMG SRC="/images/second/flame_top.gif" BORDER="0" HEIGHT="6" WIDTH="100%" class="menu_frame" style="top:0px; left:0px;">
+	<IMG SRC="/images/second/flame_left.gif" BORDER="0" WIDTH="6" HEIGHT="100%" class="menu_frame" style="top:0px; left:0px;">
+	<IMG SRC="/images/second/flame_right.gif" BORDER="0" HEIGHT="100%" WIDTH="6" class="menu_frame" style="top:0px; right:0px;">
+	<IMG SRC="/images/second/flame_under.gif" BORDER="0" HEIGHT="7" WIDTH="100%" class="menu_frame" style="left:0px; bottom:0px;">
+	<!-- 外枠線終了 -->
+
+	<IMG SRC="/images/second/shop01_on.gif" WIDTH="212" HEIGHT="22" BORDER="0" class="alphagrad2" ALT="企業"><BR>
+	<IMG SRC="/images/second/shop02.gif" WIDTH="212" HEIGHT="22" BORDER="0" class="alpha50" ALT="店舗グループ"><BR>
+	<IMG SRC="/images/second/shop03.gif" WIDTH="212" HEIGHT="22" BORDER="0" class="alpha50" ALT="店舗">
+
+	<!-- 青背景 -->
+	<div id="back_blue"  style="position:absolute; top:80px; left:10px; width:900px; height:195px; background:rgba(0,0,255,0.1);">
+		<!-- 青背景枠線 -->
+		<IMG SRC="/images/second/flame_top.gif" BORDER="0" HEIGHT="6" WIDTH="100%" class="menu_frame" style="top:0px; left:0px;">
+		<IMG SRC="/images/second/flame_left.gif" BORDER="0" WIDTH="6" HEIGHT="100%" class="menu_frame" style="top:0px; left:0px;">
+		<IMG SRC="/images/second/flame_right.gif" BORDER="0" HEIGHT="100%" WIDTH="6" class="menu_frame" style="top:0px; right:0px;">
+		<IMG SRC="/images/second/flame_under.gif" BORDER="0" HEIGHT="7" WIDTH="100%" class="menu_frame" style="left:0px; bottom:0px;">
+		<!-- 青背景枠線終了 -->
+
+		<IMG SRC="/images/second/arrow_category01.gif" WIDTH="190" HEIGHT="28" BORDER="0" class="alpha50"><br>
+		<IMG SRC="/images/second/categoroy00.gif" WIDTH="184" HEIGHT="22" BORDER="0" class="alpha50" ALT="店舗別"><BR>
+		<IMG SRC="/images/second/categoroy01.gif" WIDTH="184" HEIGHT="22" BORDER="0" class="alpha50" ALT="大分類"><BR>
+		<IMG SRC="/images/second/categoroy02_on.gif" WIDTH="184" HEIGHT="22" BORDER="0" class="alphagrad2" ALT="中分類"><BR>
+		<IMG SRC="/images/second/categoroy03.gif" WIDTH="184" HEIGHT="22" BORDER="0" class="alpha50" ALT="小分類"><BR>
+		<IMG SRC="/images/second/categoroy04.gif" WIDTH="184" HEIGHT="22" BORDER="0" class="alpha50" ALT="クラス"><BR>
+		<IMG SRC="/images/second/categoroy05.gif" WIDTH="184" HEIGHT="22" BORDER="0" class="alpha50" ALT="商品"><br>
+		<IMG SRC="/images/second/arrow_category02.gif" WIDTH="190" HEIGHT="29" BORDER="0" class="alpha50">
+	</div>
+
+	<!-- 黄背景 -->
+	<div id="back_yelow" style="position:absolute; top:30px; left:210px; width:330px; height:400px; background:rgba(255,255,0,0.1);">
+		<!-- 黄背景枠線 -->
+		<IMG SRC="/images/second/flame_top.gif" BORDER="0" HEIGHT="6" WIDTH="100%" class="menu_frame" style="top:0px; left:0px;">
+		<IMG SRC="/images/second/flame_left.gif" BORDER="0" WIDTH="6" HEIGHT="100%" class="menu_frame" style="top:0px; left:0px;">
+		<IMG SRC="/images/second/flame_right.gif" BORDER="0" HEIGHT="100%" WIDTH="6" class="menu_frame" style="top:0px; right:0px;">
+		<IMG SRC="/images/second/flame_under.gif" BORDER="0" HEIGHT="7" WIDTH="100%" class="menu_frame" style="left:0px; bottom:0px;">
+		<!-- 黄背景枠線終了 -->
+
+		<div style="position:absolute; top:0px; left:5px;">
+			<IMG SRC="/images/second/arrow_time01.gif" WIDTH="37" HEIGHT="48" BORDER="0" class="alpha50" >
+		</div>
+
+		<div style="width:100%; text-align:center;">
+			<IMG SRC="/images/second/time_01.gif" WIDTH="22" HEIGHT="48" BORDER="0" class="alpha50" ALT="月">
+			<IMG SRC="/images/second/time_00.gif" BORDER="0" HEIGHT="48" WIDTH="9">
+			<IMG SRC="/images/second/time_02.gif" BORDER="0" WIDTH="22" HEIGHT="48" class="alpha50" ALT="週">
+			<IMG SRC="/images/second/time_00.gif" WIDTH="9" HEIGHT="48" BORDER="0">
+			<IMG SRC="/images/second/time_03_on.gif" WIDTH="22" HEIGHT="48" BORDER="0" class="alphagrad" ALT="日">
+			<!--<IMG SRC="/images/second/time_00.gif" WIDTH="9" HEIGHT="48" BORDER="0"><IMG SRC="/images/second/time_04.gif" WIDTH="22" HEIGHT="48" BORDER="0" class="alpha50" ALT="速報">-->
+		</div>
+
+		<div style="position:absolute; top:0px; right:5px;">
+			<IMG SRC="/images/second/arrow_time02.gif" WIDTH="41" HEIGHT="48" BORDER="0" class="alpha50" style="text-align:right;">
+		</div>
+	</div>
+
+	<div style="position:absolute; top:40px; left:570px; width:170px; height:35px;">
+        <ul class="menu_list">
+		</ul>
+	</div>
+	<div style="position:absolute; top:40px; left:740px; width:170px; height:35px;">
+        <ul class="menu_list">
+		</ul>
+	</div>
+
+	<!-- リンク -->
+	<div id="second_menu" style="position:absolute; top:80px; left:210px; width:690px; height:370px; margin-top:10px; margin-left:10px;">
+		<div class="menu_top menu_left">
+		<ul class="menu_list">
+			<li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SASR">
+<A target="_top" HREF="./SASR/SASR0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SASR','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SASR','/images/second/b_yellow.gif')">売上一覧</A></TR>
+</li>
+			<li>
+<IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SATS">
+<A target="_top" HREF="./SATS/SATS0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SATS','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SATS','/images/second/b_yellow.gif')">時間帯販売</A></TR>
+			</li>
+			<li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SAST">
+<A target="_top" HREF="./SAST/SAST0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SAST','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SAST','/images/second/b_yellow.gif')">売上推移</A></TR>
+</li>
+			<li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SASC">
+<A target="_top" HREF="./SASC/SASC0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SASC','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SASC','/images/second/b_yellow.gif')">売上進捗カレンダー</A></TR>
+</li>
+			<li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SAyy">
+<A target="_top" HREF="./SAyy/SAyy0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SAyy','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SAyy','/images/second/b_yellow.gif')">店舗横並び売上一覧</A></TR>
+</li>
+		</ul>
+		</div>
+
+		<div class="menu_top menu_right">
+		<ul class="menu_list2">
+			<li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SACL">
+<A target="_top" HREF="./SACL/SACL0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SACL','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SACL','/images/second/b_yellow.gif')">分類売上一覧</A></TR>
+</li>
+			<li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SAKT">
+<A target="_top" HREF="./SAKT/SAKT0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SAKT','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SAKT','/images/second/b_yellow.gif')">期間売上対比</A></TR>
+</li>
+			<li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SACC">
+<A target="_top" HREF="./SACC/SACC0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SACC','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SACC','/images/second/b_yellow.gif')">分類売上対比</A></TR>
+</li>
+<li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SANP">
+<A target="_top" HREF="./SANP/SANP0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SANP','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SANP','/images/second/b_yellow.gif')">売上日報(実績)</A></TR>
+</li><li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SANT">
+<A target="_top" HREF="./SANT/SANT0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SANT','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SANT','/images/second/b_yellow.gif')">売上日報(推移)</A></TR>
+</li>		</ul>
+
+
+        <ul class="menu_list2">
+
+		</ul>
+
+
+		</div>
+
+		<div class="menu_bottom menu_left">
+		<ul class="menu_list">
+			<li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SACS">
+<A target="_top" HREF="./SACS/SACS0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SACS','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SACS','/images/second/b_yellow.gif')">カテゴリ売上一覧</A></TR>
+</li>
+			<li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SASZ">
+<A target="_top" HREF="./SASZ/SASZ0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SASZ','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SASZ','/images/second/b_yellow.gif')">属性売上一覧</A></TR>
+</li>
+<li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SARS">
+<A target="_top" HREF="./SARS/SARS0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SARS','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SARS','/images/second/b_yellow.gif')">レジ売上一覧</A></TR>
+</li><li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SADS">
+<A target="_top" HREF="./SADS/SADS0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SADS','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SADS','/images/second/b_yellow.gif')">扱者売上一覧</A></TR>
+</li>		</div>
+
+		<div class="menu_bottom menu_right">
+		<ul class="menu_list2">
+			<li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SAPL">
+<A target="_top" HREF="./SAPL/SAPL0010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SAPL','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SAPL','/images/second/b_yellow.gif')">企画売上一覧</A></TR>
+</li>
+		</ul>
+		<ul class="menu_list2">
+<li><IMG SRC="/images/second/b_yellow.gif" WIDTH="22" HEIGHT="20" BORDER="0" NAME="SAR6">
+<A target="_top" HREF="./SAR6/SAR60010010.php?ws_bussId=7" ONMOUSEOVER="chgImg('SAR6','/images/second/b_yellow_on.gif')" ONMOUSEOUT="chgImg('SAR6','/images/second/b_yellow.gif')">取引レポート(税明細)</A></TR>
+</li>		</ul>
+		</div>
+
+	</div><!-- second_menu -->
+
+</div> <!-- contents_menu_back -->
+
+
+</div>
+
+<TABLE WIDTH="96%">
+<TR><TD>
+<A HREF="https://help.teraoka-cc.jp/netdoa-faq/"
+	onClick="JavaScript:window.open('http://help.teraoka-cc.jp/api/chatbot_login.php?site=netdoa-faq&log=netdoa&pwd=netdoa',
+	'','');return(false)" style="float:right;"><IMG SRC="/images/FAQ.png" WIDTH="270" HEIGHT="33" NAME="button3"> </A>
+</TD></TR>
+</TABLE>
+
+</BODY>
+</HTML>

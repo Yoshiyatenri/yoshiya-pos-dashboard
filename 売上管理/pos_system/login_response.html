@@ -1,0 +1,20 @@
+<HTML>
+<HEAD>
+<SCRIPT Language="JavaScript">
+	window.name="teraoka_main";
+
+	/**
+	* 送信(JAVASCRIPT関数)
+	* ホーム画面へ移動
+	*/
+	function moveSecondPage() {
+		document.Second.method = "post";
+		document.Second.submit();
+	}
+</SCRIPT>
+</HEAD>
+<BODY onLoad="moveSecondPage()">
+<FORM name="Second" action="HM/HM0010010.php">
+<INPUT name="ws_bussId" type="hidden" value="1">
+</FORM>
+</BODY></HTML>

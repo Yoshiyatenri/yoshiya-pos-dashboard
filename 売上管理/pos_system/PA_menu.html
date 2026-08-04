@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<HTML>
+<HEAD>
+<TITLE></TITLE>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=x-sjis">
+
+<!-- CSS読み込み -->
+<link rel="stylesheet" type="text/css" href="/css/thirdPageHeader_style.css?date=20150512095633">
+<LINK REL="stylesheet" TYPE="text/css" HREF="/css/text.css?date=20140625092924">
+<link rel="stylesheet" type="text/css" href="/css/menu_search_PA.css?date=error">
+
+<!-- javascript読み込み -->
+<script language="JavaScript" src="/js/changeImage.js"></script>
+<script language="JavaScript" src="/js/subfunctions.js"></script>
+
+
+<SCRIPT Language="JavaScript">
+var scroll_perm = null;
+var scroll_bar_width = null;
+
+function $E(id){ return document.getElementById(id);}
+
+/*画面サイズが小さい場合にも対応できるように*/
+function top_menu_resize(){
+
+	var ie6_flg = 0;			//IE6フラグ
+	var disp_min_width = 1000;	//ブラウザの最小横幅（これ以下は可変しない）
+	var disp_min_height = 0;	//ブラウザの最小縦幅（これ以下は可変しない）
+	var contents_width = null;	//contentsの幅を特別に指定したい場合
+	var search_tile_width = 850; //検索条件部分の横幅設定
+
+//タグ横長版
+
+	if($E("tag_menu_tag")){
+		if($E("tag_menu_tag").scrollWidth + 287 > disp_min_width){
+			disp_min_width = $E("tag_menu_tag").scrollWidth + 287;
+		}
+	}
+
+/*タグ改行版 テスト
+	if($E("tag_menu_tag") && $E("tag_menu")){
+		if($E("tag_menu_tag").scrollHeight > 32){
+			$E("tag_menu").style.height = $E("tag_menu_tag").scrollHeight + "px";
+		}
+	}
+*/
+	var setting_id = ["main_menu","tag_menu","search_menu","contents"];
+/*
+	document.body.style.overflowX = "hidden";
+	document.body.style.overflowY = "hidden";
+*/
+	document.body.style.overflowX = "auto";
+	document.body.style.overflowY = "hidden";
+
+	//ウィンドウの高さと幅を取得
+	var window_width = window.innerWidth;
+	var window_height = window.innerHeight;
+
+	//クロスブラウザ対応
+	if(!window_width){
+		if(ie6_flg == 0){
+			window_width = document.body.clientWidth;
+			window_height = document.body.clientHeight;
+		}else{
+			//IE6対応
+			window_width = document.documentElement.clientWidth;
+			window_height = document.documentElement.clientHeight;
+		}
+	}
+
+	//iframe内のスクロールバー表示用
+	scroll_bar_width = window_width;
+
+	//画面サイズによってメニュー部分を固定にする
+	if(window_width < disp_min_width){
+
+		if(contents_width != null){
+			//横スクロール可能幅(scroll_check関数で使用)
+			scroll_perm = disp_min_width - window_width;
+		}
+
+		//横幅を最小値に固定
+		window_width = disp_min_width;
+
+		$E("menu_header").style.position = "absolute";
+
+	}else{
+		scroll_perm = null;
+
+		if(ie6_flg == 0){
+			$E("menu_header").style.position = "fixed";
+		}else{
+			$E("menu_header").style.position = "absolute";
+		}
+
+	}
+
+	var i;
+	var obj;
+	for(i= 0; i < setting_id.length; i++){
+		obj = $E(setting_id[i]);
+
+		if(obj){
+			if(setting_id[i] == "contents" && contents_width != null && contents_width > window_width){
+				obj.style.width = contents_width + "px";
+			}else{
+				obj.style.width = window_width + "px";
+			}
+		}
+	}
+
+	obj1 = $E("search_tile_right_top");
+	obj2 = $E("search_tile_right_bottom");
+
+	if(obj1 && obj2){
+		var search_tile_change = window_width - search_tile_width;
+
+		obj1.style.width = search_tile_change + "px";
+		obj2.style.width = search_tile_change + "px";
+	}
+
+/* 高さに最低値を持たせる場合はここの処理を行う
+	if(window_height < disp_min_height){
+		window_height = disp_min_height;
+//		document.body.style.overflowY = "scroll";
+	}
+*/
+
+	//メニュー部分の高さを設定
+	var header_height = $E("menu_header").clientHeight;
+
+	$E("menu_header_frame").style.height = header_height + "px";
+
+
+	obj = $E("contents");
+
+	if(obj){
+		var contents_height = window_height - header_height;
+		obj.style.height = contents_height + "px";
+	}
+
+	//横スクロールの初期化
+	document.body.scrollLeft = 0;
+	document.documentElement.scrollLeft = 0;
+
+	scrollbar_disp_func();
+}
+
+function scrollbar_disp_func(){
+	if(typeof document.getElementById("list").contentWindow.scroll_bar_disp === 'function'){
+		document.getElementById("list").contentWindow.scroll_bar_disp(scroll_bar_width);
+	}
+
+}
+
+//検索画面オープン SACC版
+function srchWinOpen_SACC(url, srch_typ){
+	url = url + '?ws_bussId=8&ws_programID=PA'
+		+ "&ws_srch_typ=" + srch_typ
+		+ "&ws_pluFlg="
+		+ "&ws_pluStr=";
+
+	window.open(url, "teraoka_search","width=860,height=583");
+}
+
+
+	//検索画面オープン
+	function srchWinOpen(url){
+		url = url + '?ws_bussId=8&ws_programID=PA';
+		window.open(url, "teraoka_search","width=860,height=583");
+		//var retVal = showModalDialog(url, 'teraoka_favorite', "dialogWidth:860px;dialogHeight:583px");
+		//alert(retVal);
+	}
+
+
+// ノンアクト,ノンアクト一括削除「任意」ボタンクリック時
+function nonActSrchWinOpen(url){
+	url = url + '?ws_bussId=8&ws_programID=PA';
+	url = url + '&ws_actType=4&ws_nonActPeriod=4';
+	window.open(url, "teraoka_search","width=860,height=583");
+}
+
+
+function graphOnOff(num){
+}
+
+//画面のリサイズ時に処理が連続して発生しないように
+var timer = false;
+
+function top_menu_resize_setTime(){
+	//setTimeoutで設定した関数をクリアする
+	if(timer !== false){
+		clearTimeout(timer);
+    	}
+
+	//この関数が呼ばれてから0.05秒間リサイズしなければリサイズの関数を実行する
+	timer = setTimeout(
+		function(){
+			top_menu_resize();
+		}, 50
+	);
+}
+
+
+//横スクロール時のメニューバー固定
+function scroll_check(){
+
+	var ie6_flg = 0;			//IE6フラグ
+
+	if(ie6_flg == 1){
+		//IE6用処理
+		var x = document.documentElement.scrollLeft || document.body.scrollLeft;
+		if(scroll_perm != null){
+			if(scroll_perm < x){
+				$E("menu_header").style.left = x - scroll_perm + "px";
+			}else{
+				$E("menu_header").style.left = "0px";
+			}
+		}else{
+			$E("menu_header").style.left = x + "px";
+		}
+	}else{
+		//IE6以外の処理
+		var x = document.documentElement.scrollLeft || document.body.scrollLeft;
+		if(scroll_perm != null){
+			if(scroll_perm < x){
+
+				$E("menu_header").style.position = "fixed";
+				$E("menu_header").style.right = "0px";
+
+			}else{
+				$E("menu_header").style.position = "absolute";
+				$E("menu_header").style.right = "";
+
+			}
+		}
+	}
+
+	var scroll_obj1 = document.getElementById("list").contentWindow.document.getElementById("scroll_containar");
+	if(scroll_obj1){
+		scroll_obj1.style.left = x + "px";
+	}
+}
+
+window.onresize = top_menu_resize_setTime;
+
+</SCRIPT>
+
+<style>
+</style>
+
+</HEAD>
+		<body  >
+
+
+<!--
+*************************************************************************************************************************************************
+-->
+
+<div id="menu_header_frame" style="position:relative;">
+
+<div id="menu_header" >
+
+<div id="main_menu">
+
+	<div id="logo" style="float:left;">
+		<a href="/HM/HM0010010.php?ws_bussId=1">
+		<IMG SRC="/images/menubar_logo.jpg" style="float:left; width:129px; height:70px;">
+		</a>
+		<IMG SRC="/images/line.gif" style="float:left; width:6px; height:70px;">
+	</div><!--logo-->
+	<div id="top_menu" style="float:left; width:704px;">
+		<ul>
+			<li>			<A HREF="/HM/HM0010010.php?ws_bussId=1" target="_top" ONMOUSEOVER="chgImg('HM','/images/HM_on.gif')" ONMOUSEOUT="chgImg('HM','/images/HM_off.gif')"><IMG SRC="/images/HM_off.gif" NAME="HM" ALT="HOME"></A>
+			</li>			<li>			<A HREF="/SA/SA0010010.php?ws_bussId=7" target="_top" ONMOUSEOVER="chgImg('SA','/images/SA_on.gif')" ONMOUSEOUT="chgImg('SA','/images/SA_off.gif')"><IMG SRC="/images/SA_off.gif" NAME="SA" ALT="販売分析"></A>
+			</li>			<li>			<A HREF="/PA/PA0010010.php?ws_bussId=8" target="_top"><IMG SRC="/images/PA_in.gif" NAME="PA" ALT="商品分析"></A>
+			</li>			<li>		<IMG SRC="/images/i_empty.gif">
+			</li>			<li>		<IMG SRC="/images/i_empty.gif">
+			</li>			<li>		<IMG SRC="/images/i_empty.gif">
+			</li>			<li>		<IMG SRC="/images/i_empty.gif">
+			</li>			<li>		<IMG SRC="/images/i_empty.gif">
+			</li>			<li>			<A HREF="/BG/BG0010010.php?ws_bussId=9" target="_top" ONMOUSEOVER="chgImg('BG','/images/BG_on.gif')" ONMOUSEOUT="chgImg('BG','/images/BG_off.gif')"><IMG SRC="/images/BG_off.gif" NAME="BG" ALT="予算設定"></A>
+			</li>			<li>			<A HREF="/RG/RG0010010.php?ws_bussId=5" target="_top" ONMOUSEOVER="chgImg('RG','/images/RG_on.gif')" ONMOUSEOUT="chgImg('RG','/images/RG_off.gif')"><IMG SRC="/images/RG_off.gif" NAME="RG" ALT="レジ関連"></A>
+			</li>			<li>			<A HREF="/BS/BS0010010.php?ws_bussId=4" target="_top" ONMOUSEOVER="chgImg('BS','/images/BS_on.gif')" ONMOUSEOUT="chgImg('BS','/images/BS_off.gif')"><IMG SRC="/images/BS_off.gif" NAME="BS" ALT="基本設定"></A>
+			</li>		</ul>
+
+		<!-- 中央横線 -->
+		<div class="Horizontal_line">
+			<IMG SRC="/images/line2.gif" style="width:704px; height:2px; margin: 0px; padding: 0px;">
+		</div>
+
+		<ul>
+			<li>		<IMG SRC="/images/i_empty.gif">
+			</li>			<li>			<A HREF="/IT/IT0010010.php?ws_bussId=3" target="_top" ONMOUSEOVER="chgImg('IT','/images/IT_on.gif')" ONMOUSEOUT="chgImg('IT','/images/IT_off.gif')"><IMG SRC="/images/IT_off.gif" NAME="IT" ALT="商品設定"></A>
+			</li>			<li>		<IMG SRC="/images/i_empty.gif">
+			</li>			<li>		<IMG SRC="/images/i_empty.gif">
+			</li>			<li>		<IMG SRC="/images/i_empty.gif">
+			</li>			<li>		<IMG SRC="/images/i_empty.gif">
+			</li>			<li>		<IMG SRC="/images/i_empty.gif">
+			</li>			<li>		<IMG SRC="/images/i_empty.gif">
+			</li>			<li>		<IMG SRC="/images/i_empty.gif">
+			</li>			<li>			<A HREF="/DL/DL0010010.php?ws_bussId=10" target="_top" ONMOUSEOVER="chgImg('DL','/images/DL_on.gif')" ONMOUSEOUT="chgImg('DL','/images/DL_off.gif')"><IMG SRC="/images/DL_off.gif" NAME="DL" ALT="ダウンロード"></A>
+			</li>			<li>			<A HREF="/MT/MT0010010.php?ws_bussId=6" target="_top" ONMOUSEOVER="chgImg('MT','/images/MT_on.gif')" ONMOUSEOUT="chgImg('MT','/images/MT_off.gif')"><IMG SRC="/images/MT_off.gif" NAME="MT" ALT="メンテナンス"></A>
+			</li>		</ul>
+	</div><!--top_menu-->
+
+	<div id="comp_info">
+		<!-- 右たて線：アイコンと企業情報の区切り線 -->
+		<IMG SRC="/images/line3.jpg" style="float:left;width:7px; height:70px;">
+
+		<!-- 企業情報 -->
+		<div style="line-height:1.2em; text-align:right; padding-top:2px; padding-left:5px; padding-right:5px; font-size:10px;">
+			2269:株式会社　吉寿屋<br>
+			お菓子のデパート　よしや　伏見<br>
+			吉寿屋様本部<br>
+
+		<!--ログアウトボタン表示-->
+			<A HREF="/" target="_top"><IMG SRC="/images/i_logout.gif" style="width:87px; height:20px; margin-top:4px;"></A>
+		</div>
+	</div><!-- comp_info -->
+
+	<!-- 下横線 -->
+	<div class="Horizontal_line">
+		<IMG SRC="/images/head.gif" style="width:100%; height:2px;">
+	</div>
+
+</div><!-- main_menu -->
+
+<!--
+<div style="width:100%; background-color:#FF0000;">
+<b>緊急アラートテスト</b>
+</div>
+-->
+
+
+</div>
+</div>
+<div id="contents">
+<!--ここから インラインフレーム-->
+<IFRAME src="./PA0010020.php?ws_bussId=8" id="list" name="list" width="100%" height="100%"  scrolling="AUTO" frameborder="0" marginwidth="0" marginheight="0" border="0"></IFRAME>
+<!--ここまで インラインフレーム-->
+
+</div><!--contents-->
+
+<script type="text/javascript">
+<!--
+top_menu_resize();
+// -->
+</script>
+
+</body>
+</HTML>

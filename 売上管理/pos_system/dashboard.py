@@ -219,7 +219,10 @@ def query_data(
         con = get_conn()
         df = pd.read_sql_query(
             f"""
-            SELECT pos_date, store_name, cat_name, mid_cat_name, small_cat_name,
+            SELECT pos_date, store_name,
+                   COALESCE(cat_name, '') AS cat_name,
+                   COALESCE(mid_cat_name, '') AS mid_cat_name,
+                   COALESCE(small_cat_name, '') AS small_cat_name,
                    plu_code, plu_name, master_cost, master_price,
                    sales_amount, sales_qty, sales_customers, gross_profit
             FROM sales
