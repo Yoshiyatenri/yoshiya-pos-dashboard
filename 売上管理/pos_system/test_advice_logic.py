@@ -86,3 +86,22 @@ def test_build_metrics_summary_empty_prev_bumon():
     text = build_metrics_summary("天理店", "2026年6月", cur_totals, prev_totals, cur, prev)
 
     assert "比較不可" in text
+
+
+def test_build_metrics_summary_no_false_deterioration_when_all_improved():
+    from advice_logic import build_metrics_summary
+
+    cur = _bumon_df([{"カテゴリー": "駄菓子", "売上": 120000, "荒利": 42000, "荒利率": 0.35}])
+    prev = _bumon_df([{"カテゴリー": "駄菓子", "売上": 100000, "荒利": 30000, "荒利率": 0.30}])
+    cur_totals = {"sales": 120000, "profit": 42000, "qty": 1000, "customers": 500}
+    prev_totals = {"sales": 100000, "profit": 30000, "qty": 900, "customers": 450}
+
+    text = build_metrics_summary("天理店", "2026年6月", cur_totals, prev_totals, cur, prev)
+
+    sections = text.split("■ ")
+    worse_rate_section = next(s for s in sections if s.startswith("荒利率が悪化した部門"))
+    worse_sales_section = next(s for s in sections if s.startswith("売上が減少した部門"))
+    assert "駄菓子" not in worse_rate_section
+    assert "駄菓子" not in worse_sales_section
+    assert "該当なし" in worse_rate_section
+    assert "該当なし" in worse_sales_section

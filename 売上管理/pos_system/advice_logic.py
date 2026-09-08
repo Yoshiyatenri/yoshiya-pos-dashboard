@@ -94,10 +94,26 @@ def build_metrics_summary(
                     f"（{row['売上差']:+,.0f}円）"
                 )
 
-    _section("荒利率が悪化した部門", common.sort_values("荒利率差").head(3), "rate")
-    _section("荒利率が改善した部門", common.sort_values("荒利率差", ascending=False).head(3), "rate")
-    _section("売上が減少した部門", common.sort_values("売上差").head(3), "sales")
-    _section("売上が増加した部門", common.sort_values("売上差", ascending=False).head(3), "sales")
+    _section(
+        "荒利率が悪化した部門",
+        common[common["荒利率差"] < 0].sort_values("荒利率差").head(3),
+        "rate",
+    )
+    _section(
+        "荒利率が改善した部門",
+        common[common["荒利率差"] > 0].sort_values("荒利率差", ascending=False).head(3),
+        "rate",
+    )
+    _section(
+        "売上が減少した部門",
+        common[common["売上差"] < 0].sort_values("売上差").head(3),
+        "sales",
+    )
+    _section(
+        "売上が増加した部門",
+        common[common["売上差"] > 0].sort_values("売上差", ascending=False).head(3),
+        "sales",
+    )
 
     if new_cats:
         lines.append(f"■ 当月に新規発生した部門: {', '.join(new_cats)}")

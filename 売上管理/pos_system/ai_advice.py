@@ -32,7 +32,7 @@ def call_ai_advice(store_label: str, period_label: str, metrics_text: str, api_k
         client = anthropic.Anthropic(api_key=api_key)
         response = client.messages.create(
             model="claude-opus-5",
-            max_tokens=4096,
+            max_tokens=16000,
             thinking={"type": "adaptive"},
             system=_SYSTEM_PROMPT,
             messages=[{
@@ -42,13 +42,17 @@ def call_ai_advice(store_label: str, period_label: str, metrics_text: str, api_k
         )
         text_blocks = [block.text for block in response.content if block.type == "text"]
         advice = "\n".join(text_blocks).strip()
-        return advice if advice else "⚠️ 生成に失敗しました（応答が空でした）"
+        if not advice:
+            return "⚠️ 生成に失敗しました（応答が空でした）"
+        if getattr(response, "stop_reason", None) == "max_tokens":
+            advice += "\n\n⚠️ 出力が上限に達したため、途中で切れている可能性があります。"
+        return advice
     except anthropic.APIStatusError as e:
         return f"⚠️ 生成に失敗しました（APIエラー: HTTP {e.status_code}）"
     except anthropic.APIConnectionError:
         return "⚠️ 生成に失敗しました（API接続エラー。ネットワークを確認してください）"
     except Exception as e:
-        return f"⚠️ 生成に失敗しました（{e}）"
+        return f"⚠️ 生成に失敗しました（{type(e).__name__}）"
 
 
 def make_advice_docx(results: dict, period_label: str) -> bytes | None:
