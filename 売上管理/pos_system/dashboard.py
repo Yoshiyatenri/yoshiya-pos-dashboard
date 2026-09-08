@@ -504,6 +504,23 @@ with st.sidebar:
     extract_btn = st.button("🔍 抽出実行", use_container_width=True, type="primary")
     bumon_btn   = st.button("📊 部門別分析レポート", use_container_width=True)
 
+    # ⑥ AI改善提案レポート（管理者専用）
+    ai_advice_btn = False
+    if st.session_state.get("is_admin"):
+        st.divider()
+        st.subheader("⑥ AI改善提案レポート（管理者専用）")
+        if date_mode == "月選択":
+            st.caption("⚠️ Claude APIの利用料金が発生します。")
+            ai_agree = st.checkbox("料金が発生することに同意して実行する", key="ai_agree")
+            st.caption(f"選択中の{len(selected_display)}店舗を分析します。")
+            ai_advice_btn = st.button(
+                "🤖 AI改善提案レポート",
+                use_container_width=True,
+                disabled=not ai_agree,
+            )
+        else:
+            st.caption("「月選択」モードのときのみ利用できます。")
+
 # ─── 抽出処理 ────────────────────────────────────────────────────────────────
 if extract_btn:
     if not selected_display:
@@ -591,7 +608,39 @@ if bumon_btn:
                 "end": str(end_date),
             }
 
-if not extract_btn and "df_result" not in st.session_state and "bumon_result" not in st.session_state:
+if ai_advice_btn:
+    if not selected_display:
+        st.warning("店舗を1つ以上選択してください。")
+    else:
+        prev_range = get_prev_month_range(start_date, end_date)
+        if prev_range is None:
+            st.warning("前月データと比較できない期間です。「月選択」モードで単一の月を選んでください。")
+        else:
+            prev_start, prev_end = prev_range
+            period_label = f"{start_date.year}年{start_date.month}月"
+            api_key = get_anthropic_key()
+            results = {}
+            progress = st.progress(0.0)
+            for i, display_name in enumerate(selected_display):
+                store_db = store_mapping[display_name]
+                cur_totals = get_store_totals(str(start_date), str(end_date), store_db)
+                prev_totals = get_store_totals(str(prev_start), str(prev_end), store_db)
+                cur_bumon = query_bumon_analysis(str(start_date), str(end_date), [store_db])
+                prev_bumon = query_bumon_analysis(str(prev_start), str(prev_end), [store_db])
+                metrics_text = build_metrics_summary(
+                    display_name, period_label, cur_totals, prev_totals, cur_bumon, prev_bumon
+                )
+                results[display_name] = call_ai_advice(display_name, period_label, metrics_text, api_key)
+                progress.progress((i + 1) / len(selected_display))
+            st.session_state["ai_advice_result"] = results
+            st.session_state["ai_advice_meta"] = {"period_label": period_label}
+
+if (
+    not extract_btn
+    and "df_result" not in st.session_state
+    and "bumon_result" not in st.session_state
+    and "ai_advice_result" not in st.session_state
+):
     st.info("👈 左のサイドバーで条件を設定して「抽出実行」または「部門別分析レポート」ボタンを押してください。")
     st.stop()
 
@@ -653,6 +702,29 @@ if "bumon_result" in st.session_state:
             )
     else:
         st.warning("openpyxl がインストールされていません。`pip install openpyxl` を実行してください。")
+
+# ─── AI改善提案レポート ─────────────────────────────────────────────────────
+if "ai_advice_result" in st.session_state:
+    ai_results = st.session_state["ai_advice_result"]
+    ai_period_label = st.session_state["ai_advice_meta"]["period_label"]
+    st.divider()
+    st.subheader(f"🤖 AI改善提案レポート　{ai_period_label}")
+
+    for store_label, advice_text in ai_results.items():
+        with st.expander(store_label, expanded=False):
+            st.markdown(advice_text)
+
+    if _docx_ok:
+        docx_bytes = make_advice_docx(ai_results, ai_period_label)
+        if docx_bytes:
+            st.download_button(
+                label="📥 Wordダウンロード",
+                data=docx_bytes,
+                file_name=f"AI改善提案レポート_{ai_period_label}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+    else:
+        st.warning("python-docx がインストールされていません。`pip install python-docx` を実行してください。")
 
 # ─── 管理者：アクセスログ ─────────────────────────────────────────────────────
 if st.session_state.get("is_admin") and _use_pg():
