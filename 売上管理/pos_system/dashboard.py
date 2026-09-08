@@ -29,6 +29,9 @@ try:
 except ImportError:
     _openpyxl_ok = False
 
+from advice_logic import get_prev_month_range, build_metrics_summary
+from ai_advice import call_ai_advice, make_advice_docx, _docx_ok
+
 BASE_DIR = Path(__file__).parent
 _cfg_path = BASE_DIR / "config.json"
 cfg = json.loads(_cfg_path.read_text(encoding="utf-8")) if _cfg_path.exists() else {}
@@ -112,6 +115,14 @@ def _use_pg() -> bool:
     """Supabaseを使うかどうか（URLが正しく設定されている場合のみ）"""
     url = get_db_url()
     return _psycopg2_ok and bool(url) and "XXXXXXXXXX" not in url
+
+
+def get_anthropic_key() -> str:
+    """Claude APIキー: Streamlit Secrets優先、なければconfig.json"""
+    try:
+        return st.secrets["anthropic_api_key"]
+    except Exception:
+        return cfg.get("anthropic_api_key", "")
 
 
 def get_conn():
@@ -293,6 +304,35 @@ def query_bumon_analysis(start: str, end: str, stores_db: list[str]) -> pd.DataF
         "売上順位": None, "荒利率順位": None,
     }])
     return pd.concat([df, total], ignore_index=True)
+
+
+def get_store_totals(start: str, end: str, store_db: str) -> dict:
+    """指定期間・店舗の売上・荒利・点数・客数の合計を返す"""
+    sql = f"""
+        SELECT
+            COALESCE(SUM(sales_amount), 0)    AS sales,
+            COALESCE(SUM(gross_profit), 0)    AS profit,
+            COALESCE(SUM(sales_qty), 0)       AS qty,
+            COALESCE(SUM(sales_customers), 0) AS customers
+        FROM sales
+        WHERE pos_date BETWEEN {_ph(1)} AND {_ph(1)} AND store_name = {_ph(1)}
+    """
+    try:
+        con = get_conn()
+        cur = con.cursor()
+        cur.execute(_fix(sql), [start, end, store_db])
+        row = cur.fetchone()
+        cur.close()
+        con.close()
+    except Exception:
+        row = (0, 0, 0, 0)
+    sales, profit, qty, customers = row
+    return {
+        "sales": float(sales or 0),
+        "profit": float(profit or 0),
+        "qty": float(qty or 0),
+        "customers": float(customers or 0),
+    }
 
 
 def make_bumon_excel(df: pd.DataFrame, store_label: str, start: str, end: str) -> bytes | None:
