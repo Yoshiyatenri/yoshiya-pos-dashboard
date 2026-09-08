@@ -30,7 +30,7 @@ except ImportError:
     _openpyxl_ok = False
 
 from advice_logic import get_prev_month_range, build_metrics_summary
-from ai_advice import call_ai_advice, make_advice_docx, _docx_ok
+from ai_advice import call_ai_advice, make_advice_docx, _docx_ok, _anthropic_ok
 
 BASE_DIR = Path(__file__).parent
 _cfg_path = BASE_DIR / "config.json"
@@ -510,14 +510,17 @@ with st.sidebar:
         st.divider()
         st.subheader("⑥ AI改善提案レポート（管理者専用）")
         if date_mode == "月選択":
-            st.caption("⚠️ Claude APIの利用料金が発生します。")
-            ai_agree = st.checkbox("料金が発生することに同意して実行する", key="ai_agree")
-            st.caption(f"選択中の{len(selected_display)}店舗を分析します。")
-            ai_advice_btn = st.button(
-                "🤖 AI改善提案レポート",
-                use_container_width=True,
-                disabled=not ai_agree,
-            )
+            if not _anthropic_ok:
+                st.warning("anthropic がインストールされていません。`pip install anthropic` を実行してください。")
+            else:
+                st.caption("⚠️ Claude APIの利用料金が発生します。")
+                ai_agree = st.checkbox("料金が発生することに同意して実行する", key="ai_agree")
+                st.caption(f"選択中の{len(selected_display)}店舗を分析します。")
+                ai_advice_btn = st.button(
+                    "🤖 AI改善提案レポート",
+                    use_container_width=True,
+                    disabled=not ai_agree,
+                )
         else:
             st.caption("「月選択」モードのときのみ利用できます。")
 
@@ -630,7 +633,8 @@ if ai_advice_btn:
                 metrics_text = build_metrics_summary(
                     display_name, period_label, cur_totals, prev_totals, cur_bumon, prev_bumon
                 )
-                results[display_name] = call_ai_advice(display_name, period_label, metrics_text, api_key)
+                advice_text = call_ai_advice(display_name, period_label, metrics_text, api_key)
+                results[display_name] = {"advice": advice_text, "metrics": metrics_text}
                 progress.progress((i + 1) / len(selected_display))
             st.session_state["ai_advice_result"] = results
             st.session_state["ai_advice_meta"] = {"period_label": period_label}
@@ -710,12 +714,15 @@ if "ai_advice_result" in st.session_state:
     st.divider()
     st.subheader(f"🤖 AI改善提案レポート　{ai_period_label}")
 
-    for store_label, advice_text in ai_results.items():
+    for store_label, data in ai_results.items():
         with st.expander(store_label, expanded=False):
-            st.markdown(advice_text)
+            st.markdown(data["advice"])
+            st.caption("AIに渡した数値データ")
+            st.code(data["metrics"], language=None)
 
     if _docx_ok:
-        docx_bytes = make_advice_docx(ai_results, ai_period_label)
+        advice_only = {store_label: data["advice"] for store_label, data in ai_results.items()}
+        docx_bytes = make_advice_docx(advice_only, ai_period_label)
         if docx_bytes:
             st.download_button(
                 label="📥 Wordダウンロード",
