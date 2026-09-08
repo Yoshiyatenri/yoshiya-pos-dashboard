@@ -49,3 +49,18 @@ def call_ai_advice(store_label: str, period_label: str, metrics_text: str, api_k
         return "⚠️ 生成に失敗しました（API接続エラー。ネットワークを確認してください）"
     except Exception as e:
         return f"⚠️ 生成に失敗しました（{e}）"
+
+
+def make_advice_docx(results: dict, period_label: str) -> bytes | None:
+    """店舗ごとのAI改善提案をまとめた.docxをバイト列で返す"""
+    if not _docx_ok:
+        return None
+    doc = Document()
+    doc.add_heading(f"AI改善提案レポート　{period_label}", level=1)
+    for store_label, advice_text in results.items():
+        doc.add_heading(store_label, level=2)
+        for line in advice_text.split("\n"):
+            doc.add_paragraph(line)
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
