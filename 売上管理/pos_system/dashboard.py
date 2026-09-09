@@ -306,6 +306,26 @@ def query_bumon_analysis(start: str, end: str, stores_db: list[str]) -> pd.DataF
     return pd.concat([df, total], ignore_index=True)
 
 
+def get_visitors(start: str, end: str, stores_db: list) -> int | None:
+    """期間・店舗の来店客数合計をvisitorsテーブルから取得。データがなければNoneを返す"""
+    if not stores_db:
+        return None
+    try:
+        con = get_conn()
+        cur = con.cursor()
+        ph = _ph(len(stores_db))
+        cur.execute(
+            _fix(f"SELECT SUM(visitors_count) FROM visitors WHERE pos_date BETWEEN %s AND %s AND store_name IN ({ph})"),
+            [start, end] + stores_db,
+        )
+        row = cur.fetchone()
+        cur.close()
+        con.close()
+        return int(row[0]) if row and row[0] is not None else None
+    except Exception:
+        return None
+
+
 def get_store_totals(start: str, end: str, store_db: str) -> dict:
     """指定期間・店舗の売上・荒利・点数・客数の合計を返す"""
     sql = f"""
@@ -594,6 +614,9 @@ if extract_btn:
             "profit": df_raw["gross_profit"].sum(),
         }
         st.session_state["period"] = (str(start_date), str(end_date))
+        st.session_state["visitors_total"] = get_visitors(
+            str(start_date), str(end_date), selected_stores_db
+        )
 
 if bumon_btn:
     if not selected_display:
@@ -656,12 +679,21 @@ if "df_result" in st.session_state:
 
     st.subheader(f"📋 抽出結果　{period[0]} 〜 {period[1]}")
 
-    c1, c2, c3, c4 = st.columns(4)
+    visitors_total = st.session_state.get("visitors_total")
+
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.metric("抽出行数", f"{len(df_show):,} 行")
     c2.metric("売上合計", f"¥{totals['sales']:,.0f}")
     c3.metric("粗利合計", f"¥{totals['profit']:,.0f}")
     gross_rate = totals["profit"] / totals["sales"] * 100 if totals["sales"] > 0 else 0
     c4.metric("粗利率", f"{gross_rate:.1f}%")
+    if visitors_total is not None:
+        c5.metric("来店客数", f"{visitors_total:,} 人")
+        avg_spend = totals["sales"] / visitors_total if visitors_total > 0 else 0
+        c6.metric("客単価", f"¥{avg_spend:,.0f}")
+    else:
+        c5.metric("来店客数", "データなし")
+        c6.metric("客単価", "―")
 
     st.divider()
     st.dataframe(df_show, use_container_width=True, hide_index=True)
