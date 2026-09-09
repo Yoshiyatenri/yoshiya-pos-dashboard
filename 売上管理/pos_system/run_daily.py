@@ -63,6 +63,7 @@ def main():
 
     import download
     import import_db
+    import import_visitors
 
     missing_dates = find_missing_dates()
 
@@ -77,16 +78,25 @@ def main():
 
     for d in missing_dates:
         log.info(f"--- {d.strftime('%Y/%m/%d')} の処理開始 ---")
+        dt = datetime.combine(d, datetime.min.time())
 
-        csv_path = download.run(datetime.combine(d, datetime.min.time()))
+        # 商品売上実績CSVのダウンロード＋取り込み
+        csv_path = download.run(dt)
         if not csv_path:
             log.error(f"{d} のCSVダウンロード失敗。スキップします。")
             failed_dates.append(d)
             continue
-
         inserted = import_db.import_csv(csv_path)
         total_inserted += inserted
-        log.info(f"{d}: {inserted}件追加")
+        log.info(f"{d}: 売上{inserted}件追加")
+
+        # 取引レポート（来店客数）のダウンロード＋取り込み
+        visitors_path = download.run_visitors(dt)
+        if visitors_path:
+            v_count = import_visitors.run(d.strftime("%Y%m%d"))
+            log.info(f"{d}: 来店客数{v_count}件追加")
+        else:
+            log.warning(f"{d}: 取引レポートのダウンロード失敗。来店客数はスキップ。")
 
     log.info("=" * 50)
     if failed_dates:

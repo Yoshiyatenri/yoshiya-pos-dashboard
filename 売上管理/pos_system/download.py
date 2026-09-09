@@ -29,8 +29,9 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-BASE_URL    = "https://www.netdoa-nx.jp"
-DL_LIST_URL = f"{BASE_URL}/DL/DL0010020.php"
+BASE_URL         = "https://www.netdoa-nx.jp"
+DL_LIST_URL      = f"{BASE_URL}/DL/DL0010020.php"
+VISITORS_JOB_URL = f"{BASE_URL}/SA/SAR6/SAR60010010.php"
 STORE_CODES = [1,2,3,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,100]
 POLL_INTERVAL_SEC = 15    # 15秒ごとに確認
 MAX_WAIT_MIN      = 25    # 最大25分待機
@@ -219,6 +220,118 @@ def run(target_date: datetime | None = None) -> str | None:
     log.info(f"ジョブ送信完了 ({submitted_at.strftime('%H:%M:%S')})。DLページを定期確認します...")
 
     if poll_and_download(session, submitted_at, out_path, date_str):
+        return str(out_path)
+    return None
+
+
+def submit_visitors_job(session: requests.Session, date_str: str) -> bool:
+    """取引レポート（全店舗）のCSV生成ジョブをGETで送信する"""
+    year, month, day = date_str[:4], date_str[4:6], date_str[6:]
+    params = {
+        "ws_bussId": "7", "ws_programID": "SAR6", "ws_actType": "1",
+        "ws_streFlg": "1", "ws_streCd": "0",  # 0=全店舗
+        "ws_clsFlg": "3", "ws_clsCd": "", "ws_makerCd": "", "ws_catDscCd": "",
+        "ws_smlClsCd": "0", "ws_periodFlg": "2",
+        "ws_yearFrom": year, "ws_monthFrom": month, "ws_dayFrom": day,
+        "ws_yearTo":   year, "ws_monthTo":   month, "ws_dayTo":   day,
+        "ws_planCd": "", "ws_disp_yearFrom": "", "ws_disp_monthFrom": "",
+        "ws_disp_dayFrom": "", "ws_disp_yearTo": "", "ws_disp_monthTo": "",
+        "ws_disp_dayTo": "", "ws_strePermit": "", "ws_clsPermit": "0",
+        "ws_periodPermit": "", "ws_SerialNo": "1",
+    }
+    r = session.get(VISITORS_JOB_URL, params=params)
+    html = r.content.decode("shift_jis", errors="replace")
+
+    # onLoadチェーンが存在する場合は再現（商品売上実績と同様）
+    m = re.search(r"openCsvWin\('([^']+)'", html)
+    if m:
+        url1 = BASE_URL + m.group(1)
+        r1 = session.get(url1)
+        html1 = r1.content.decode("shift_jis", errors="replace")
+        if "document.CSV.submit()" in html1:
+            params1 = {}
+            for inp in re.finditer(r'<INPUT[^>]+name=["\'](\w+)["\'][^>]+value=["\']([^"\']*)["\']', html1, re.IGNORECASE):
+                params1[inp.group(1)] = inp.group(2)
+            action_m = re.search(r'<FORM[^>]+action=["\']([^"\']+)["\']', html1, re.IGNORECASE)
+            action = action_m.group(1) if action_m else VISITORS_JOB_URL
+            if not action.startswith("http"):
+                action = BASE_URL + action
+            r2 = session.get(action, params=params1)
+            html2 = r2.content.decode("shift_jis", errors="replace")
+            log.info(f"取引レポートstep2: {re.sub(r'<[^>]+>', ' ', html2).strip()[:80]}")
+
+    ok = r.status_code == 200
+    log.info(f"取引レポート ジョブ送信 {'成功' if ok else '失敗'} (status={r.status_code})")
+    return ok
+
+
+def poll_and_download_visitors(session: requests.Session, submitted_at: datetime, out_path: Path, date_str: str = "") -> bool:
+    """取引レポートCSVが生成されるまでポーリングしてダウンロード"""
+    polls = MAX_WAIT_MIN * 60 // POLL_INTERVAL_SEC
+    date_fmt = f"{date_str[:4]}.{date_str[4:6]}.{date_str[6:]}" if len(date_str) == 8 else ""
+
+    for attempt in range(int(polls)):
+        log.info(f"取引レポートDLページ確認 {attempt + 1}/{int(polls)} 回目...")
+        try:
+            links = get_dl_links(session)
+        except Exception as e:
+            log.warning(f"DLページ取得エラー: {e}")
+            time.sleep(POLL_INTERVAL_SEC)
+            continue
+
+        new_links = [
+            lnk for lnk in links
+            if "取引レポート" in lnk["title"]
+            and (date_fmt in lnk["title"] if date_fmt else lnk["created_at"] >= submitted_at - timedelta(minutes=2))
+        ]
+        if new_links:
+            target = max(new_links, key=lambda x: x["created_at"])
+            log.info(f"取引レポートCSVを発見: {target['title']}")
+            r = session.get(target["url"])
+            if r.status_code == 200 and len(r.content) > 1000:
+                out_path.write_bytes(r.content)
+                log.info(f"保存完了: {out_path} ({len(r.content):,} bytes)")
+                return True
+            log.warning(f"ダウンロード失敗 (status={r.status_code}, size={len(r.content)})")
+
+        log.info(f"  → まだ未完了。{POLL_INTERVAL_SEC}秒後に再確認...")
+        time.sleep(POLL_INTERVAL_SEC)
+
+    log.error(f"{MAX_WAIT_MIN}分待ちましたが取引レポートCSVが見つかりませんでした")
+    return False
+
+
+def run_visitors(target_date: datetime | None = None) -> str | None:
+    """取引レポート（全店舗・日別）をダウンロードする"""
+    cfg = load_config()
+    date = target_date or (datetime.now() - timedelta(days=1))
+    date_str = date.strftime("%Y%m%d")
+    date_fmt = date.strftime("%Y.%m.%d")
+
+    download_dir = (BASE_DIR / cfg["download_dir"]).resolve()
+    download_dir.mkdir(exist_ok=True)
+
+    # 既存ファイルがあればスキップ
+    existing = list(download_dir.glob(f"*取引レポート*{date_fmt}*.csv"))
+    if existing:
+        log.info(f"取引レポートCSV ({date_str}) はすでに存在します。スキップします。")
+        return str(existing[0])
+
+    out_path = download_dir / f"全店_取引レポート_{date_str}.csv"
+    log.info(f"取引レポート {date.strftime('%Y/%m/%d')} のダウンロード開始")
+
+    session = requests.Session()
+    session.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    if not login(session, cfg):
+        log.error("ログイン失敗")
+        return None
+
+    submitted_at = datetime.now()
+    if not submit_visitors_job(session, date_str):
+        log.error("取引レポート ジョブ送信失敗")
+        return None
+
+    if poll_and_download_visitors(session, submitted_at, out_path, date_str):
         return str(out_path)
     return None
 
