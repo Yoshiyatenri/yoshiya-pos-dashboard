@@ -56,8 +56,13 @@ CREATE TABLE IF NOT EXISTS visitors (
 
 CREATE_PG = CREATE_SQLITE.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
 
-# ファイル名から日付を取得（全店・1店舗共通）
-DATE_RE = re.compile(r'\[(\d{4})\.(\d{2})\.(\d{2})')
+# ファイル名から日付を取得（複数形式に対応）
+# 手動DL形式: 「[2026.09.08 ～」 / 「[2026/09/08 〜」
+# 自動DL形式: 「_20260908.csv」
+DATE_RE = re.compile(
+    r'\[(\d{4})[./](\d{2})[./](\d{2})'  # [YYYY.MM.DD or [YYYY/MM/DD
+    r'|_(\d{4})(\d{2})(\d{2})\.csv'      # _YYYYMMDD.csv
+)
 # ファイル名から店舗コードを取得（1店舗ファイル用）
 SINGLE_STORE_RE = re.compile(r'店舗：(\d+)')
 # ヘッダー列から 店舗コード:店舗名[レジ番号] を解析
@@ -105,7 +110,11 @@ def parse_allstores_csv(csv_path: Path) -> list[tuple[str, int, str, int]]:
     if not dm:
         log.warning(f"ファイル名から日付を取得できません: {csv_path.name}")
         return []
-    pos_date = f"{dm.group(1)}-{dm.group(2)}-{dm.group(3)}"
+    # 正規表現の2パターンのどちらにマッチしたか判定
+    if dm.group(1):
+        pos_date = f"{dm.group(1)}-{dm.group(2)}-{dm.group(3)}"
+    else:
+        pos_date = f"{dm.group(4)}-{dm.group(5)}-{dm.group(6)}"
 
     result = _read_csv(csv_path)
     if result is None:
@@ -155,7 +164,10 @@ def parse_single_store_csv(csv_path: Path) -> list[tuple[str, int, str, int]]:
         log.warning(f"ファイル名から店舗コード・日付を取得できません: {csv_path.name}")
         return []
     store_code = int(sm.group(1))
-    pos_date = f"{dm.group(1)}-{dm.group(2)}-{dm.group(3)}"
+    if dm.group(1):
+        pos_date = f"{dm.group(1)}-{dm.group(2)}-{dm.group(3)}"
+    else:
+        pos_date = f"{dm.group(4)}-{dm.group(5)}-{dm.group(6)}"
 
     result = _read_csv(csv_path)
     if result is None:
@@ -251,9 +263,11 @@ def run(date_filter: str = "") -> int:
     dl_dir = BASE_DIR / cfg.get("download_dir", "downloads")
     paths = list(dl_dir.glob("*取引レポート*.csv"))
     if date_filter:
-        # 20260908 → 2026.09.08 形式で絞り込み
-        d = f"{date_filter[:4]}.{date_filter[4:6]}.{date_filter[6:]}"
-        paths = [p for p in paths if d in p.name]
+        # 20260908 で絞り込み（手動DL形式 [2026.09.08 / 自動DL形式 _20260908 の両方に対応）
+        dot_fmt = f"{date_filter[:4]}.{date_filter[4:6]}.{date_filter[6:]}"
+        slash_fmt = f"{date_filter[:4]}/{date_filter[4:6]}/{date_filter[6:]}"
+        paths = [p for p in paths if
+                 date_filter in p.name or dot_fmt in p.name or slash_fmt in p.name]
     if not paths:
         log.info("取引レポートCSVが見つかりませんでした")
         return 0
