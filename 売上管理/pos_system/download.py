@@ -225,50 +225,65 @@ def run(target_date: datetime | None = None) -> str | None:
 
 
 def submit_visitors_job(session: requests.Session, date_str: str) -> bool:
-    """取引レポート（全店舗）のCSV生成ジョブをGETで送信する"""
+    """
+    取引レポート（全店舗・日別）のCSV生成ジョブを送信してDL0010020.phpに登録する。
+    フロー:
+      1. SAR60010010.php にGETアクセス → HTMLにCSVリンクが埋め込まれる
+      2. HTMLから SAR60010030.php のCSV出力URLを抽出
+      3. SAR60010030.php にGET → 「CSV作成指示」（onLoadチェーン）
+      4. フォーム送信 → DL0010020.phpにCSVが登録される
+    """
     year, month, day = date_str[:4], date_str[4:6], date_str[6:]
     params = {
         "ws_bussId": "7", "ws_programID": "SAR6", "ws_actType": "1",
         "ws_streFlg": "1", "ws_streCd": "0",  # 0=全店舗
-        "ws_clsFlg": "3", "ws_clsCd": "", "ws_makerCd": "", "ws_catDscCd": "",
-        "ws_smlClsCd": "0", "ws_periodFlg": "2",
+        "ws_clsFlg": "3", "ws_periodFlg": "2",
         "ws_yearFrom": year, "ws_monthFrom": month, "ws_dayFrom": day,
         "ws_yearTo":   year, "ws_monthTo":   month, "ws_dayTo":   day,
-        "ws_planCd": "", "ws_disp_yearFrom": "", "ws_disp_monthFrom": "",
-        "ws_disp_dayFrom": "", "ws_disp_yearTo": "", "ws_disp_monthTo": "",
-        "ws_disp_dayTo": "", "ws_strePermit": "", "ws_clsPermit": "0",
-        "ws_periodPermit": "", "ws_SerialNo": "1",
+        "ws_SerialNo": "1",
     }
     r = session.get(VISITORS_JOB_URL, params=params)
+    if r.status_code != 200:
+        log.error(f"取引レポートページ取得失敗 (status={r.status_code})")
+        return False
     html = r.content.decode("shift_jis", errors="replace")
 
-    # onLoadチェーンが存在する場合は再現（商品売上実績と同様）
-    m = re.search(r"openCsvWin\('([^']+)'", html)
-    if m:
-        url1 = BASE_URL + m.group(1)
-        r1 = session.get(url1)
-        html1 = r1.content.decode("shift_jis", errors="replace")
-        if "document.CSV.submit()" in html1:
-            params1 = {}
-            for inp in re.finditer(r'<INPUT[^>]+name=["\'](\w+)["\'][^>]+value=["\']([^"\']*)["\']', html1, re.IGNORECASE):
-                params1[inp.group(1)] = inp.group(2)
-            action_m = re.search(r'<FORM[^>]+action=["\']([^"\']+)["\']', html1, re.IGNORECASE)
-            action = action_m.group(1) if action_m else VISITORS_JOB_URL
-            if not action.startswith("http"):
-                action = BASE_URL + action
-            r2 = session.get(action, params=params1)
-            html2 = r2.content.decode("shift_jis", errors="replace")
-            log.info(f"取引レポートstep2: {re.sub(r'<[^>]+>', ' ', html2).strip()[:80]}")
+    # CSVダウンロードURL（SAR60010030.php?...&gs_FileName=csv...）を抽出
+    m = re.search(r"openPdfWin\('(\./SAR60010030\.php\?[^']*gs_FileName=csv[^']*)'\s*,\s*'CSV'\)", html)
+    if not m:
+        log.error("CSVダウンロードリンクが見つかりません")
+        return False
 
-    ok = r.status_code == 200
-    log.info(f"取引レポート ジョブ送信 {'成功' if ok else '失敗'} (status={r.status_code})")
+    rel = m.group(1).lstrip("./")
+    csv_url = f"{BASE_URL}/SA/SAR6/{rel}"
+
+    # SAR60010030.php にGET → 「CSV作成指示」（onLoad="document.CSV.submit()"）
+    r1 = session.get(csv_url)
+    html1 = r1.content.decode("shift_jis", errors="replace")
+    if "document.CSV.submit()" not in html1:
+        log.error("CSV作成指示ページが想定外")
+        return False
+
+    # フォーム送信 → DL0010020.phpへCSVを登録
+    params1 = {}
+    for inp in re.finditer(r'<INPUT[^>]+name=["\'](\w+)["\'][^>]+value=["\']([^"\']*)["\']', html1, re.IGNORECASE):
+        params1[inp.group(1)] = inp.group(2)
+    action_m = re.search(r'<FORM[^>]+action=["\']([^"\']+)["\']', html1, re.IGNORECASE)
+    action = action_m.group(1) if action_m else csv_url
+    if not action.startswith("http"):
+        action = BASE_URL + action
+
+    r2 = session.get(action, params=params1)
+    ok = r2.status_code == 200
+    log.info(f"取引レポート ジョブ送信 {'成功' if ok else '失敗'} (status={r2.status_code})")
     return ok
 
 
 def poll_and_download_visitors(session: requests.Session, submitted_at: datetime, out_path: Path, date_str: str = "") -> bool:
-    """取引レポートCSVが生成されるまでポーリングしてダウンロード"""
+    """取引レポートCSVがDL0010020.phpに出るまでポーリングしてダウンロード"""
     polls = MAX_WAIT_MIN * 60 // POLL_INTERVAL_SEC
-    date_fmt = f"{date_str[:4]}.{date_str[4:6]}.{date_str[6:]}" if len(date_str) == 8 else ""
+    # DLページのタイトルは「2026/08/01」形式（スラッシュ区切り）
+    date_fmt = f"{date_str[:4]}/{date_str[4:6]}/{date_str[6:]}" if len(date_str) == 8 else ""
 
     for attempt in range(int(polls)):
         log.info(f"取引レポートDLページ確認 {attempt + 1}/{int(polls)} 回目...")
@@ -282,6 +297,7 @@ def poll_and_download_visitors(session: requests.Session, submitted_at: datetime
         new_links = [
             lnk for lnk in links
             if "取引レポート" in lnk["title"]
+            and "全店" in lnk["title"]
             and (date_fmt in lnk["title"] if date_fmt else lnk["created_at"] >= submitted_at - timedelta(minutes=2))
         ]
         if new_links:
