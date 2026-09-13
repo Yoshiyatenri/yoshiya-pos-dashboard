@@ -98,9 +98,13 @@ def build_metrics_summary(
     common = merged.dropna(subset=["売上_cur", "売上_prev"]).copy()
     common["荒利率差"] = common["荒利率_cur"] - common["荒利率_prev"]
     common["売上差"] = common["売上_cur"] - common["売上_prev"]
+    # 率の変化がなかったとした場合と比べた概算の利益影響額（当月売上規模で評価）。
+    # 売上が小さい部門は率の変化幅が大きくても全体への影響が小さいため、
+    # 荒利率差の絶対値ではなくこの影響額で重要度を判断する。
+    common["影響額"] = common["荒利率差"] * common["売上_cur"]
 
     def _section(title: str, rows: pd.DataFrame, kind: str) -> None:
-        lines.append(f"■ {title}（上位3）")
+        lines.append(f"■ {title}（上位3・利益への影響額順）")
         if rows.empty:
             lines.append("- 該当なし")
             return
@@ -108,7 +112,7 @@ def build_metrics_summary(
             if kind == "rate":
                 lines.append(
                     f"- {cat}: 荒利率 {row['荒利率_prev']:.1%} → {row['荒利率_cur']:.1%}"
-                    f"（{row['荒利率差'] * 100:+.1f}pt）"
+                    f"（{row['荒利率差'] * 100:+.1f}pt、影響額 約{row['影響額']:+,.0f}円）"
                 )
             else:
                 lines.append(
@@ -118,12 +122,12 @@ def build_metrics_summary(
 
     _section(
         "荒利率が悪化した部門",
-        common[common["荒利率差"] < 0].sort_values("荒利率差").head(3),
+        common[common["荒利率差"] < 0].sort_values("影響額").head(3),
         "rate",
     )
     _section(
         "荒利率が改善した部門",
-        common[common["荒利率差"] > 0].sort_values("荒利率差", ascending=False).head(3),
+        common[common["荒利率差"] > 0].sort_values("影響額", ascending=False).head(3),
         "rate",
     )
     _section(

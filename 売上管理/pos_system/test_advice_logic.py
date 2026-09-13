@@ -131,6 +131,28 @@ def test_build_metrics_summary_customers_non_numeric_value_shows_no_data():
     assert "- 客単価: データなし / ¥200円" in text
 
 
+def test_build_metrics_summary_worsened_rate_ranked_by_profit_impact():
+    """売上が小さく率の下げ幅だけ大きい部門より、売上が大きく利益額への影響が大きい部門を先に出す"""
+    from advice_logic import build_metrics_summary
+
+    cur = _bumon_df([
+        {"カテゴリー": "小規模ジャンル", "売上": 1000, "荒利": 100, "荒利率": 0.10},
+        {"カテゴリー": "主力ジャンル", "売上": 500000, "荒利": 125000, "荒利率": 0.25},
+    ])
+    prev = _bumon_df([
+        {"カテゴリー": "小規模ジャンル", "売上": 1000, "荒利": 500, "荒利率": 0.50},
+        {"カテゴリー": "主力ジャンル", "売上": 500000, "荒利": 150000, "荒利率": 0.30},
+    ])
+    cur_totals = {"sales": 501000, "profit": 125100, "qty": 1000, "customers": 500}
+    prev_totals = {"sales": 501000, "profit": 150500, "qty": 1000, "customers": 500}
+
+    text = build_metrics_summary("天理店", "2026年6月", cur_totals, prev_totals, cur, prev)
+
+    section = text.split("■ 荒利率が悪化した部門")[1].split("■ ")[0]
+    assert section.index("主力ジャンル") < section.index("小規模ジャンル")
+    assert "影響額" in section
+
+
 def test_build_metrics_summary_no_false_deterioration_when_all_improved():
     from advice_logic import build_metrics_summary
 
