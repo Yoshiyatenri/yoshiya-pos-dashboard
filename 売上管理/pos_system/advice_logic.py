@@ -45,10 +45,10 @@ def build_metrics_summary(
     """当月/前月の店舗合計・部門別データから、AIに渡す数値サマリーのテキストを組み立てる"""
     lines = [f"【{store_label}　{period_label}】"]
 
+    cur_customers = cur_totals.get("customers")
+    prev_customers = prev_totals.get("customers")
     cur_rate = cur_totals["profit"] / cur_totals["sales"] * 100 if cur_totals["sales"] else 0
     prev_rate = prev_totals["profit"] / prev_totals["sales"] * 100 if prev_totals["sales"] else 0
-    cur_spend = cur_totals["sales"] / cur_totals["customers"] if cur_totals["customers"] else 0
-    prev_spend = prev_totals["sales"] / prev_totals["customers"] if prev_totals["customers"] else 0
 
     lines.append("■ 全体実績（当月 / 前月 / 増減率）")
     lines.append(
@@ -60,11 +60,23 @@ def build_metrics_summary(
         f"{_pct_change(cur_totals['profit'], prev_totals['profit'])}"
     )
     lines.append(f"- 荒利率: {cur_rate:.1f}% / {prev_rate:.1f}%")
-    lines.append(
-        f"- 客数: {cur_totals['customers']:,.0f}人 / {prev_totals['customers']:,.0f}人 / "
-        f"{_pct_change(cur_totals['customers'], prev_totals['customers'])}"
+
+    cur_customers_str = f"{cur_customers:,.0f}人" if cur_customers is not None else "データなし"
+    prev_customers_str = f"{prev_customers:,.0f}人" if prev_customers is not None else "データなし"
+    customers_pct = (
+        _pct_change(cur_customers, prev_customers)
+        if cur_customers is not None and prev_customers is not None
+        else "比較不可（データなし）"
     )
-    lines.append(f"- 客単価: {cur_spend:,.0f}円 / {prev_spend:,.0f}円")
+    lines.append(f"- 客数: {cur_customers_str} / {prev_customers_str} / {customers_pct}")
+
+    cur_spend_str = (
+        f"¥{cur_totals['sales'] / cur_customers:,.0f}円" if cur_customers else "データなし"
+    )
+    prev_spend_str = (
+        f"¥{prev_totals['sales'] / prev_customers:,.0f}円" if prev_customers else "データなし"
+    )
+    lines.append(f"- 客単価: {cur_spend_str} / {prev_spend_str}")
 
     cur_cat = _cat_frame(cur_bumon)
     prev_cat = _cat_frame(prev_bumon)

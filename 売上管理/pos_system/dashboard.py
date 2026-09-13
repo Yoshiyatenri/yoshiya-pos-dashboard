@@ -327,13 +327,12 @@ def get_visitors(start: str, end: str, stores_db: list) -> int | None:
 
 
 def get_store_totals(start: str, end: str, store_db: str) -> dict:
-    """指定期間・店舗の売上・荒利・点数・客数の合計を返す"""
+    """指定期間・店舗の売上・荒利・点数の合計を返す（客数はvisitorsテーブルから別途取得すること）"""
     sql = f"""
         SELECT
-            COALESCE(SUM(sales_amount), 0)    AS sales,
-            COALESCE(SUM(gross_profit), 0)    AS profit,
-            COALESCE(SUM(sales_qty), 0)       AS qty,
-            COALESCE(SUM(sales_customers), 0) AS customers
+            COALESCE(SUM(sales_amount), 0) AS sales,
+            COALESCE(SUM(gross_profit), 0) AS profit,
+            COALESCE(SUM(sales_qty), 0)    AS qty
         FROM sales
         WHERE pos_date BETWEEN {_ph(1)} AND {_ph(1)} AND store_name = {_ph(1)}
     """
@@ -345,13 +344,12 @@ def get_store_totals(start: str, end: str, store_db: str) -> dict:
         cur.close()
         con.close()
     except Exception:
-        row = (0, 0, 0, 0)
-    sales, profit, qty, customers = row
+        row = (0, 0, 0)
+    sales, profit, qty = row
     return {
         "sales": float(sales or 0),
         "profit": float(profit or 0),
         "qty": float(qty or 0),
-        "customers": float(customers or 0),
     }
 
 
@@ -651,6 +649,8 @@ if ai_advice_btn:
                 store_db = store_mapping[display_name]
                 cur_totals = get_store_totals(str(start_date), str(end_date), store_db)
                 prev_totals = get_store_totals(str(prev_start), str(prev_end), store_db)
+                cur_totals["customers"] = get_visitors(str(start_date), str(end_date), [store_db])
+                prev_totals["customers"] = get_visitors(str(prev_start), str(prev_end), [store_db])
                 cur_bumon = query_bumon_analysis(str(start_date), str(end_date), [store_db])
                 prev_bumon = query_bumon_analysis(str(prev_start), str(prev_end), [store_db])
                 metrics_text = build_metrics_summary(

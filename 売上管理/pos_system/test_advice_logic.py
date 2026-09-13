@@ -88,6 +88,34 @@ def test_build_metrics_summary_empty_prev_bumon():
     assert "比較不可" in text
 
 
+def test_build_metrics_summary_customers_none_shows_no_data():
+    from advice_logic import build_metrics_summary
+
+    cur = _bumon_df([{"カテゴリー": "駄菓子", "売上": 100000, "荒利": 30000, "荒利率": 0.30}])
+    prev = _bumon_df([{"カテゴリー": "駄菓子", "売上": 90000, "荒利": 27000, "荒利率": 0.30}])
+    cur_totals = {"sales": 100000, "profit": 30000, "qty": 1000, "customers": None}
+    prev_totals = {"sales": 90000, "profit": 27000, "qty": 900, "customers": None}
+
+    text = build_metrics_summary("天理店", "2026年6月", cur_totals, prev_totals, cur, prev)
+
+    assert "- 客数: データなし / データなし / 比較不可（データなし）" in text
+    assert "- 客単価: データなし / データなし" in text
+
+
+def test_build_metrics_summary_customers_partial_data():
+    from advice_logic import build_metrics_summary
+
+    cur = _bumon_df([{"カテゴリー": "駄菓子", "売上": 100000, "荒利": 30000, "荒利率": 0.30}])
+    prev = _bumon_df([{"カテゴリー": "駄菓子", "売上": 90000, "荒利": 27000, "荒利率": 0.30}])
+    cur_totals = {"sales": 100000, "profit": 30000, "qty": 1000, "customers": 500}
+    prev_totals = {"sales": 90000, "profit": 27000, "qty": 900, "customers": None}
+
+    text = build_metrics_summary("天理店", "2026年6月", cur_totals, prev_totals, cur, prev)
+
+    assert "- 客数: 500人 / データなし / 比較不可（データなし）" in text
+    assert "- 客単価: ¥200円 / データなし" in text
+
+
 def test_build_metrics_summary_no_false_deterioration_when_all_improved():
     from advice_logic import build_metrics_summary
 
