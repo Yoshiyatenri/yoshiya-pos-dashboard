@@ -79,6 +79,50 @@ def test_call_ai_advice_prompt_instructs_customer_breakdown(monkeypatch):
     assert "集客" in system_prompt
 
 
+def test_call_ai_advice_prompt_ogata_guidance_for_tenri(monkeypatch):
+    captured = {}
+
+    class _FakeMessagesCapture:
+        def create(self, **kwargs):
+            captured.update(kwargs)
+            return _FakeResponse("■現状分析\nテスト\n■改善施策\n- 施策1")
+
+    class _FakeAnthropic:
+        def __init__(self, api_key):
+            self.messages = _FakeMessagesCapture()
+
+    monkeypatch.setattr(ai_advice.anthropic, "Anthropic", _FakeAnthropic)
+
+    ai_advice.call_ai_advice("天理店", "2026年6月", "売上: 100円", "sk-test-key")
+
+    system_prompt = captured["system"]
+    assert "目的買い" in system_prompt
+    assert "品揃え" in system_prompt
+    assert "ついで買い" not in system_prompt
+
+
+def test_call_ai_advice_prompt_sonota_guidance_for_other_stores(monkeypatch):
+    captured = {}
+
+    class _FakeMessagesCapture:
+        def create(self, **kwargs):
+            captured.update(kwargs)
+            return _FakeResponse("■現状分析\nテスト\n■改善施策\n- 施策1")
+
+    class _FakeAnthropic:
+        def __init__(self, api_key):
+            self.messages = _FakeMessagesCapture()
+
+    monkeypatch.setattr(ai_advice.anthropic, "Anthropic", _FakeAnthropic)
+
+    ai_advice.call_ai_advice("十三店", "2026年6月", "売上: 100円", "sk-test-key")
+
+    system_prompt = captured["system"]
+    assert "ついで買い" in system_prompt
+    assert "陳列" in system_prompt
+    assert "目的買い" not in system_prompt
+
+
 def test_call_ai_advice_truncated(monkeypatch):
     fake_response = _FakeResponse("■現状分析\n途中まで", stop_reason="max_tokens")
 

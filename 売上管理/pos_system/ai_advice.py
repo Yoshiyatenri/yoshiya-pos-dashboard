@@ -25,6 +25,26 @@ _SYSTEM_PROMPT = (
     "2つの見出しで構成してください。"
 )
 
+_OGATA_TEN = "天理店"  # 郊外大型店（車での来店が前提）。それ以外は店頭に人通りがある店舗
+
+_OGATA_GUIDANCE = (
+    "この店舗は郊外の大型店です。客数は主に自動車等での来店による集客に左右され、"
+    "目的買いのお客様をいかに集客するかが重要です。客単価は品揃えの広さに左右されます。"
+    "集客施策は目的買い需要を喚起する観点、客単価向上施策は品揃え拡充の観点で提案してください。"
+)
+
+_SONOTA_GUIDANCE = (
+    "この店舗は店頭にある程度の人通りがある立地です。客数は店頭の商品構成など目につく商品に"
+    "左右され、いかに店に入ってもらうか（ついで買いのお客様の集客）が重要です。"
+    "客単価はついで買いなどを誘発する陳列方法に左右されます。"
+    "集客施策は店頭・陳列の工夫で入店を促す観点、客単価向上施策はついで買いを誘発する陳列の観点で提案してください。"
+)
+
+
+def _store_type_guidance(store_label: str) -> str:
+    """店舗タイプ（郊外大型店／その他店舗）に応じた分析観点を返す"""
+    return _OGATA_GUIDANCE if store_label == _OGATA_TEN else _SONOTA_GUIDANCE
+
 
 def call_ai_advice(store_label: str, period_label: str, metrics_text: str, api_key: str) -> str:
     """数値サマリーをもとにAI改善提案を生成する。失敗時はエラー文言を返す"""
@@ -38,7 +58,7 @@ def call_ai_advice(store_label: str, period_label: str, metrics_text: str, api_k
             model="claude-opus-5",
             max_tokens=16000,
             thinking={"type": "adaptive"},
-            system=_SYSTEM_PROMPT,
+            system=_SYSTEM_PROMPT + "\n" + _store_type_guidance(store_label),
             messages=[{
                 "role": "user",
                 "content": f"【{store_label}　{period_label}】\n{metrics_text}",
