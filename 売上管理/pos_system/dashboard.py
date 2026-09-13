@@ -756,10 +756,12 @@ if "ai_advice_result" in st.session_state:
         advice_only = {store_label: data["advice"] for store_label, data in ai_results.items()}
         docx_bytes = make_advice_docx(advice_only, ai_period_label)
         if docx_bytes:
+            store_names = list(ai_results.keys())
+            store_part = "_".join(store_names) if len(store_names) <= 3 else f"{len(store_names)}店舗"
             st.download_button(
                 label="📥 Wordダウンロード",
                 data=docx_bytes,
-                file_name=f"AI改善提案レポート_{ai_period_label}.docx",
+                file_name=f"AI改善提案レポート_{store_part}_{ai_period_label}.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             )
     else:
