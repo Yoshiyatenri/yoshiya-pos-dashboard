@@ -116,6 +116,21 @@ def test_build_metrics_summary_customers_partial_data():
     assert "- 客単価: ¥200円 / データなし" in text
 
 
+def test_build_metrics_summary_customers_non_numeric_value_shows_no_data():
+    """customersがDB異常等で数値化できない値(例: リスト)でも落ちずに「データなし」扱いにする"""
+    from advice_logic import build_metrics_summary
+
+    cur = _bumon_df([{"カテゴリー": "駄菓子", "売上": 100000, "荒利": 30000, "荒利率": 0.30}])
+    prev = _bumon_df([{"カテゴリー": "駄菓子", "売上": 90000, "荒利": 27000, "荒利率": 0.30}])
+    cur_totals = {"sales": 100000, "profit": 30000, "qty": 1000, "customers": [500]}
+    prev_totals = {"sales": 90000, "profit": 27000, "qty": 900, "customers": 450}
+
+    text = build_metrics_summary("天理店", "2026年6月", cur_totals, prev_totals, cur, prev)
+
+    assert "- 客数: データなし / 450人 / 比較不可（データなし）" in text
+    assert "- 客単価: データなし / ¥200円" in text
+
+
 def test_build_metrics_summary_no_false_deterioration_when_all_improved():
     from advice_logic import build_metrics_summary
 

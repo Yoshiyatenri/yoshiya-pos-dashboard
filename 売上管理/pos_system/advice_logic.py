@@ -27,6 +27,16 @@ def _pct_change(cur: float, prev: float) -> str:
     return f"{sign}{rate:.1f}%"
 
 
+def _to_number(value) -> float | None:
+    """数値に変換できればfloatを、できなければ（DB異常値等）Noneを返す"""
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def _cat_frame(df: pd.DataFrame) -> pd.DataFrame:
     """部門別DataFrameから「合計」行を除き、カテゴリー名をインデックスにする"""
     if df.empty or "カテゴリー" not in df.columns:
@@ -45,8 +55,8 @@ def build_metrics_summary(
     """当月/前月の店舗合計・部門別データから、AIに渡す数値サマリーのテキストを組み立てる"""
     lines = [f"【{store_label}　{period_label}】"]
 
-    cur_customers = cur_totals.get("customers")
-    prev_customers = prev_totals.get("customers")
+    cur_customers = _to_number(cur_totals.get("customers"))
+    prev_customers = _to_number(prev_totals.get("customers"))
     cur_rate = cur_totals["profit"] / cur_totals["sales"] * 100 if cur_totals["sales"] else 0
     prev_rate = prev_totals["profit"] / prev_totals["sales"] * 100 if prev_totals["sales"] else 0
 
