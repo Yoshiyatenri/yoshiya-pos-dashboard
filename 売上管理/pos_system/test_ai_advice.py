@@ -57,6 +57,28 @@ def test_call_ai_advice_no_package(monkeypatch):
     assert "インストール" in result
 
 
+def test_call_ai_advice_prompt_instructs_customer_breakdown(monkeypatch):
+    captured = {}
+
+    class _FakeMessagesCapture:
+        def create(self, **kwargs):
+            captured.update(kwargs)
+            return _FakeResponse("■現状分析\nテスト\n■改善施策\n- 施策1")
+
+    class _FakeAnthropic:
+        def __init__(self, api_key):
+            self.messages = _FakeMessagesCapture()
+
+    monkeypatch.setattr(ai_advice.anthropic, "Anthropic", _FakeAnthropic)
+
+    ai_advice.call_ai_advice("天理店", "2026年6月", "売上: 100円", "sk-test-key")
+
+    system_prompt = captured["system"]
+    assert "客数" in system_prompt
+    assert "客単価" in system_prompt
+    assert "集客" in system_prompt
+
+
 def test_call_ai_advice_truncated(monkeypatch):
     fake_response = _FakeResponse("■現状分析\n途中まで", stop_reason="max_tokens")
 
