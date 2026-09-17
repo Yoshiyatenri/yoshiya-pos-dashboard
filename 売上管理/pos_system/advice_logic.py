@@ -147,3 +147,44 @@ def build_metrics_summary(
         lines.append(f"■ 前月にあったが当月は実績なしの部門: {', '.join(gone_cats)}")
 
     return "\n".join(lines)
+
+
+def _format_product_rows(rows: pd.DataFrame) -> list[str]:
+    if rows.empty:
+        return ["- 該当なし"]
+    out = []
+    for _, row in rows.iterrows():
+        rate = row["荒利率"]
+        rate_str = f"{rate:.1%}" if pd.notna(rate) else "算出不可"
+        out.append(
+            f"- {row['PLU名']}: 売上{row['売上']:,.0f}円 / 荒利率{rate_str} / 点数{row['点数']:,.0f}件"
+        )
+    return out
+
+
+def build_product_ranking_summary(product_df: pd.DataFrame, qty_threshold: int = 20) -> str:
+    """当月の商品(PLU)別データから、売上・荒利率の上位/下位20商品のテキストを組み立てる。
+
+    下位ランキングは点数がqty_threshold以下の商品を除外する。売れ行きがごく少ない商品は
+    荒利率や売上が振れやすく、主要因であるかのようなノイズになるため。
+    """
+    if product_df.empty:
+        return "■ 商品別ランキング（当月）\n- 該当データなし"
+
+    lines = []
+
+    lines.append("■ 売上上位20商品")
+    lines.extend(_format_product_rows(product_df.sort_values("売上", ascending=False).head(20)))
+
+    lines.append("■ 荒利率上位20商品")
+    lines.extend(_format_product_rows(product_df.sort_values("荒利率", ascending=False).head(20)))
+
+    bottom_pool = product_df[product_df["点数"] > qty_threshold]
+
+    lines.append(f"■ 売上下位20商品（点数{qty_threshold}件超の商品のみ）")
+    lines.extend(_format_product_rows(bottom_pool.sort_values("売上").head(20)))
+
+    lines.append(f"■ 荒利率下位20商品（点数{qty_threshold}件超の商品のみ）")
+    lines.extend(_format_product_rows(bottom_pool.sort_values("荒利率").head(20)))
+
+    return "\n".join(lines)

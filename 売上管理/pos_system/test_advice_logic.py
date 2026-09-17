@@ -170,3 +170,79 @@ def test_build_metrics_summary_no_false_deterioration_when_all_improved():
     assert "駄菓子" not in worse_sales_section
     assert "該当なし" in worse_rate_section
     assert "該当なし" in worse_sales_section
+
+
+def _product_df(rows):
+    return pd.DataFrame(rows)
+
+
+def test_build_product_ranking_summary_top_sales_ranked_descending():
+    from advice_logic import build_product_ranking_summary
+
+    df = _product_df([
+        {"PLU名": "うまい棒", "売上": 300000, "荒利": 90000, "点数": 3000, "荒利率": 0.30},
+        {"PLU名": "よっちゃん", "売上": 500000, "荒利": 150000, "点数": 2000, "荒利率": 0.30},
+        {"PLU名": "ラムネ", "売上": 100000, "荒利": 30000, "点数": 1000, "荒利率": 0.30},
+    ])
+
+    text = build_product_ranking_summary(df)
+
+    section = text.split("■ 売上上位20商品")[1].split("■ ")[0]
+    assert section.index("よっちゃん") < section.index("うまい棒") < section.index("ラムネ")
+
+
+def test_build_product_ranking_summary_top_rate_ranked_descending():
+    from advice_logic import build_product_ranking_summary
+
+    df = _product_df([
+        {"PLU名": "低利益商品", "売上": 100000, "荒利": 10000, "点数": 1000, "荒利率": 0.10},
+        {"PLU名": "高利益商品", "売上": 100000, "荒利": 50000, "点数": 1000, "荒利率": 0.50},
+    ])
+
+    text = build_product_ranking_summary(df)
+
+    section = text.split("■ 荒利率上位20商品")[1].split("■ ")[0]
+    assert section.index("高利益商品") < section.index("低利益商品")
+
+
+def test_build_product_ranking_summary_bottom_lists_exclude_low_qty_items():
+    """点数がしきい値以下(=売れ行きがごく少ない)商品は下位ランキングのノイズになるため除外する"""
+    from advice_logic import build_product_ranking_summary
+
+    df = _product_df([
+        {"PLU名": "売れ残り単発商品", "売上": 100, "荒利": -50, "点数": 5, "荒利率": -0.50},
+        {"PLU名": "定番商品", "売上": 50000, "荒利": 5000, "点数": 30, "荒利率": 0.10},
+    ])
+
+    text = build_product_ranking_summary(df, qty_threshold=20)
+
+    bottom_sales_section = text.split("■ 売上下位20商品")[1].split("■ ")[0]
+    bottom_rate_section = text.split("■ 荒利率下位20商品")[1].split("■ ")[0]
+    assert "売れ残り単発商品" not in bottom_sales_section
+    assert "売れ残り単発商品" not in bottom_rate_section
+    assert "定番商品" in bottom_sales_section
+    assert "定番商品" in bottom_rate_section
+
+
+def test_build_product_ranking_summary_limits_top_list_to_20_items():
+    from advice_logic import build_product_ranking_summary
+
+    df = _product_df([
+        {"PLU名": f"商品{i}", "売上": 1000 * i, "荒利": 100 * i, "点数": 100, "荒利率": 0.10}
+        for i in range(1, 26)
+    ])
+
+    text = build_product_ranking_summary(df)
+
+    section = text.split("■ 売上上位20商品")[1].split("■ ")[0]
+    assert section.count("- 商品") == 20
+    assert "商品25" in section
+    assert "商品5:" not in section
+
+
+def test_build_product_ranking_summary_empty_dataframe():
+    from advice_logic import build_product_ranking_summary
+
+    text = build_product_ranking_summary(pd.DataFrame())
+
+    assert "該当データなし" in text

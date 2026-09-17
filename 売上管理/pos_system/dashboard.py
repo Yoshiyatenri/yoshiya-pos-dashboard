@@ -29,7 +29,7 @@ try:
 except ImportError:
     _openpyxl_ok = False
 
-from advice_logic import get_prev_month_range, build_metrics_summary
+from advice_logic import get_prev_month_range, build_metrics_summary, build_product_ranking_summary
 from ai_advice import call_ai_advice, make_advice_docx, _docx_ok, _anthropic_ok
 
 BASE_DIR = Path(__file__).parent
@@ -304,6 +304,38 @@ def query_bumon_analysis(start: str, end: str, stores_db: list[str]) -> pd.DataF
         "売上順位": None, "荒利率順位": None,
     }])
     return pd.concat([df, total], ignore_index=True)
+
+
+def query_product_analysis(start: str, end: str, stores_db: list[str]) -> pd.DataFrame:
+    """PLU（商品）別の売上・荒利・点数集計を返す（AI改善提案の商品別ランキング用）"""
+    where = f"pos_date BETWEEN {_ph(1)} AND {_ph(1)} AND plu_name IS NOT NULL AND plu_name != ''"
+    params: list = [start, end]
+    if stores_db:
+        where += f" AND store_name IN ({_ph(len(stores_db))})"
+        params.extend(stores_db)
+    sql = f"""
+        SELECT
+            plu_name AS name,
+            SUM(sales_qty)    AS qty,
+            SUM(sales_amount) AS amount,
+            SUM(gross_profit) AS profit
+        FROM sales
+        WHERE {where}
+        GROUP BY plu_code, plu_name
+    """
+    try:
+        con = get_conn()
+        df = pd.read_sql_query(_fix(sql), con, params=params)
+        con.close()
+    except Exception as e:
+        st.error(f"商品別分析エラー: {e}")
+        return pd.DataFrame()
+    if df.empty:
+        return df
+
+    df = df.rename(columns={"name": "PLU名", "qty": "点数", "amount": "売上", "profit": "荒利"})
+    df["荒利率"] = (df["荒利"] / df["売上"]).where(df["売上"] > 0)
+    return df
 
 
 def get_visitors(start: str, end: str, stores_db: list) -> int | None:
@@ -653,9 +685,11 @@ if ai_advice_btn:
                 prev_totals["customers"] = get_visitors(str(prev_start), str(prev_end), [store_db])
                 cur_bumon = query_bumon_analysis(str(start_date), str(end_date), [store_db])
                 prev_bumon = query_bumon_analysis(str(prev_start), str(prev_end), [store_db])
+                cur_products = query_product_analysis(str(start_date), str(end_date), [store_db])
                 metrics_text = build_metrics_summary(
                     display_name, period_label, cur_totals, prev_totals, cur_bumon, prev_bumon
                 )
+                metrics_text += "\n\n" + build_product_ranking_summary(cur_products)
                 advice_text = call_ai_advice(display_name, period_label, metrics_text, api_key)
                 results[display_name] = {"advice": advice_text, "metrics": metrics_text}
                 progress.progress((i + 1) / len(selected_display))
