@@ -1,7 +1,9 @@
 """提案投稿（従業員）・一覧管理（店長）"""
 from datetime import datetime, timezone
+from io import BytesIO
 
-from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, flash, redirect, render_template, request, send_file, session, url_for
+from openpyxl import Workbook
 
 from auth import admin_required, employee_required
 from db import db_cursor, fix
@@ -47,6 +49,38 @@ def admin_proposals():
         )
         rows = cur.fetchall()
     return render_template("proposals_admin.html", proposals=rows, statuses=STATUSES)
+
+
+@bp.route("/admin/proposals/results.xlsx")
+@admin_required
+def proposals_excel():
+    with db_cursor() as cur:
+        cur.execute(
+            """
+            SELECT proposals.created_at, employees.name, proposals.content, proposals.status
+            FROM proposals
+            LEFT JOIN employees ON employees.id = proposals.employee_id
+            ORDER BY proposals.created_at DESC
+            """
+        )
+        rows = cur.fetchall()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "提案一覧"
+    ws.append(["日時", "投稿者", "内容", "ステータス"])
+    for created_at, name, content, status in rows:
+        ws.append([created_at, name or "匿名", content, status])
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name="proposals.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 
 @bp.route("/admin/proposals/<int:proposal_id>/status", methods=["POST"])

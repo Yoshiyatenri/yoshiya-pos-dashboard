@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>提案一覧</h2>
+<p><a href="{{ url_for('proposals.proposals_excel') }}">全件Excelでダウンロード</a></p>
 <table>
   <tr><th>日時</th><th>投稿者</th><th>内容</th><th>ステータス</th></tr>
   {% for id, name, content, status, created_at in proposals %}
