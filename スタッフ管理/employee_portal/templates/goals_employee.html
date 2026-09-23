@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>目標の自己採点</h2>
-{% for id, goal_text in goals %}
-<div class="goal">
-  <h3>{{ goal_text }}</h3>
-  <form method="post" action="{{ url_for('goals.submit_score', goal_id=id) }}">
-    <select name="score" required>
+{% if goals %}
+<form method="post">
+  {% for id, goal_text in goals %}
+  <div class="goal">
+    <h3>{{ goal_text }}</h3>
+    <select name="score_{{ id }}">
       <option value="">評価を選択</option>
       <option value="0">0</option>
       <option value="1">1</option>
@@ -19,11 +20,12 @@
       <option value="9">9</option>
       <option value="10">10</option>
     </select>
-    <input type="text" name="comment" placeholder="コメント（任意）">
-    <button type="submit">記録する</button>
-  </form>
-</div>
+    <input type="text" name="comment_{{ id }}" placeholder="コメント（任意）">
+  </div>
+  {% endfor %}
+  <button type="submit">記録する</button>
+</form>
 {% else %}
 <p>登録されている目標はまだありません。</p>
-{% endfor %}
+{% endif %}
 {% endblock %}

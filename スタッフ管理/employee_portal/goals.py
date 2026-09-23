@@ -72,39 +72,41 @@ def admin_goal_scores(employee_id: int):
     return render_template("goal_scores_admin.html", goals=goals_list, scores_by_goal=scores_by_goal)
 
 
-@bp.route("/goals")
+@bp.route("/goals", methods=["GET", "POST"])
 @employee_required
 def my_goals():
     employee_id = session["employee_id"]
-    with db_cursor() as cur:
+    with db_cursor(commit=True) as cur:
         cur.execute(
             fix("SELECT id, goal_text FROM goals WHERE employee_id = %s AND is_active = 1 ORDER BY created_at"),
             (employee_id,),
         )
         goals_list = cur.fetchall()
-    return render_template("goals_employee.html", goals=goals_list)
 
+        if request.method == "POST":
+            # 自分の目標だけを対象にする（他人のgoal_idを送られても無視される）
+            entries = []
+            for goal_id, _ in goals_list:
+                score = request.form.get(f"score_{goal_id}", "").strip()
+                if not score:
+                    continue
+                if score not in VALID_SCORES:
+                    flash("評価は0〜10で選んでください")
+                    return redirect(url_for("goals.my_goals"))
+                comment = request.form.get(f"comment_{goal_id}", "").strip()
+                entries.append((goal_id, score, comment))
 
-@bp.route("/goals/<int:goal_id>/score", methods=["POST"])
-@employee_required
-def submit_score(goal_id: int):
-    score = request.form.get("score", "")
-    comment = request.form.get("comment", "").strip()
-    if score not in VALID_SCORES:
-        flash("評価は0〜10で選んでください")
-        return redirect(url_for("goals.my_goals"))
+            if not entries:
+                flash("採点する目標を選択してください")
+                return redirect(url_for("goals.my_goals"))
 
-    employee_id = session["employee_id"]
-    with db_cursor(commit=True) as cur:
-        cur.execute(fix("SELECT employee_id FROM goals WHERE id = %s"), (goal_id,))
-        row = cur.fetchone()
-        if not row or row[0] != employee_id:
-            flash("不正な操作です")
+            now = datetime.now(timezone.utc).isoformat()
+            for goal_id, score, comment in entries:
+                cur.execute(
+                    fix("INSERT INTO goal_scores (goal_id, score, comment, scored_at) VALUES (%s, %s, %s, %s)"),
+                    (goal_id, int(score), comment, now),
+                )
+            flash("採点を記録しました")
             return redirect(url_for("goals.my_goals"))
 
-        cur.execute(
-            fix("INSERT INTO goal_scores (goal_id, score, comment, scored_at) VALUES (%s, %s, %s, %s)"),
-            (goal_id, int(score), comment, datetime.now(timezone.utc).isoformat()),
-        )
-    flash("採点を記録しました")
-    return redirect(url_for("goals.my_goals"))
+    return render_template("goals_employee.html", goals=goals_list)
