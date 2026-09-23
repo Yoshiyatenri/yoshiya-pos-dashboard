@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>お名前を選択してください</h2>
+<form method="post">
+  <select name="employee_id" required>
+    <option value="">選択してください</option>
+    {% for id, name in employees %}
+    <option value="{{ id }}">{{ name }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">決定</button>
+</form>
+{% endblock %}
