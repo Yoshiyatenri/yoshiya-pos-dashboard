@@ -7,7 +7,7 @@ from flask import Blueprint, flash, redirect, render_template, request, send_fil
 from openpyxl import Workbook
 
 from auth import admin_required, employee_required
-from db import fix, get_conn, insert_returning_id
+from db import db_cursor, fix, insert_returning_id
 
 bp = Blueprint("surveys", __name__)
 
@@ -15,12 +15,9 @@ bp = Blueprint("surveys", __name__)
 @bp.route("/admin/surveys")
 @admin_required
 def admin_surveys():
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("SELECT id, title, is_anonymous, is_open, created_at FROM surveys ORDER BY created_at DESC")
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
+    with db_cursor() as cur:
+        cur.execute("SELECT id, title, is_anonymous, is_open, created_at FROM surveys ORDER BY created_at DESC")
+        rows = cur.fetchall()
     return render_template("surveys_admin.html", surveys=rows)
 
 
@@ -33,36 +30,29 @@ def create_survey():
         flash("タイトルを入力してください")
         return redirect(url_for("surveys.admin_surveys"))
 
-    conn = get_conn()
-    cur = conn.cursor()
-    survey_id = insert_returning_id(
-        cur,
-        "INSERT INTO surveys (title, is_anonymous, is_open, created_at) VALUES (%s, %s, 0, %s)",
-        (title, is_anonymous, datetime.now(timezone.utc).isoformat()),
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
+    with db_cursor(commit=True) as cur:
+        survey_id = insert_returning_id(
+            cur,
+            "INSERT INTO surveys (title, is_anonymous, is_open, created_at) VALUES (%s, %s, 0, %s)",
+            (title, is_anonymous, datetime.now(timezone.utc).isoformat()),
+        )
     return redirect(url_for("surveys.edit_survey", survey_id=survey_id))
 
 
 @bp.route("/admin/surveys/<int:survey_id>/edit")
 @admin_required
 def edit_survey(survey_id: int):
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute(fix("SELECT id, title, is_anonymous, is_open FROM surveys WHERE id = %s"), (survey_id,))
-    survey = cur.fetchone()
-    cur.execute(
-        fix(
-            "SELECT id, question_text, question_type, choices FROM survey_questions "
-            "WHERE survey_id = %s ORDER BY sort_order"
-        ),
-        (survey_id,),
-    )
-    questions = cur.fetchall()
-    cur.close()
-    conn.close()
+    with db_cursor() as cur:
+        cur.execute(fix("SELECT id, title, is_anonymous, is_open FROM surveys WHERE id = %s"), (survey_id,))
+        survey = cur.fetchone()
+        cur.execute(
+            fix(
+                "SELECT id, question_text, question_type, choices FROM survey_questions "
+                "WHERE survey_id = %s ORDER BY sort_order"
+            ),
+            (survey_id,),
+        )
+        questions = cur.fetchall()
     if not survey:
         flash("アンケートが見つかりません")
         return redirect(url_for("surveys.admin_surveys"))
@@ -88,32 +78,26 @@ def add_question(survey_id: int):
             return redirect(url_for("surveys.edit_survey", survey_id=survey_id))
         choices_json = json.dumps(choices, ensure_ascii=False)
 
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute(fix("SELECT COALESCE(MAX(sort_order), -1) FROM survey_questions WHERE survey_id = %s"), (survey_id,))
-    next_order = cur.fetchone()[0] + 1
-    cur.execute(
-        fix(
-            "INSERT INTO survey_questions (survey_id, question_text, question_type, choices, sort_order) "
-            "VALUES (%s, %s, %s, %s, %s)"
-        ),
-        (survey_id, question_text, question_type, choices_json, next_order),
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
+    with db_cursor(commit=True) as cur:
+        cur.execute(
+            fix("SELECT COALESCE(MAX(sort_order), -1) FROM survey_questions WHERE survey_id = %s"), (survey_id,)
+        )
+        next_order = cur.fetchone()[0] + 1
+        cur.execute(
+            fix(
+                "INSERT INTO survey_questions (survey_id, question_text, question_type, choices, sort_order) "
+                "VALUES (%s, %s, %s, %s, %s)"
+            ),
+            (survey_id, question_text, question_type, choices_json, next_order),
+        )
     return redirect(url_for("surveys.edit_survey", survey_id=survey_id))
 
 
 @bp.route("/admin/surveys/<int:survey_id>/publish", methods=["POST"])
 @admin_required
 def publish_survey(survey_id: int):
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute(fix("UPDATE surveys SET is_open = 1 WHERE id = %s"), (survey_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
+    with db_cursor(commit=True) as cur:
+        cur.execute(fix("UPDATE surveys SET is_open = 1 WHERE id = %s"), (survey_id,))
     flash("アンケートを公開しました")
     return redirect(url_for("surveys.admin_surveys"))
 
@@ -121,12 +105,8 @@ def publish_survey(survey_id: int):
 @bp.route("/admin/surveys/<int:survey_id>/close", methods=["POST"])
 @admin_required
 def close_survey(survey_id: int):
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute(fix("UPDATE surveys SET is_open = 0 WHERE id = %s"), (survey_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
+    with db_cursor(commit=True) as cur:
+        cur.execute(fix("UPDATE surveys SET is_open = 0 WHERE id = %s"), (survey_id,))
     flash("アンケートを締め切りました")
     return redirect(url_for("surveys.admin_surveys"))
 
@@ -134,135 +114,115 @@ def close_survey(survey_id: int):
 @bp.route("/surveys")
 @employee_required
 def list_surveys():
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("SELECT id, title FROM surveys WHERE is_open = 1 ORDER BY created_at DESC")
-    open_surveys = cur.fetchall()
-    cur.close()
-    conn.close()
+    with db_cursor() as cur:
+        cur.execute("SELECT id, title FROM surveys WHERE is_open = 1 ORDER BY created_at DESC")
+        open_surveys = cur.fetchall()
     return render_template("surveys_list.html", surveys=open_surveys)
 
 
 @bp.route("/surveys/<int:survey_id>/answer", methods=["GET", "POST"])
 @employee_required
 def answer_survey(survey_id: int):
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute(fix("SELECT id, title, is_anonymous, is_open FROM surveys WHERE id = %s"), (survey_id,))
-    survey = cur.fetchone()
-    if not survey or survey[3] != 1:
-        cur.close()
-        conn.close()
-        flash("回答できないアンケートです")
-        return redirect(url_for("surveys.list_surveys"))
+    with db_cursor(commit=True) as cur:
+        cur.execute(fix("SELECT id, title, is_anonymous, is_open FROM surveys WHERE id = %s"), (survey_id,))
+        survey = cur.fetchone()
+        if not survey or survey[3] != 1:
+            flash("回答できないアンケートです")
+            return redirect(url_for("surveys.list_surveys"))
 
-    cur.execute(
-        fix(
-            "SELECT id, question_text, question_type, choices FROM survey_questions "
-            "WHERE survey_id = %s ORDER BY sort_order"
-        ),
-        (survey_id,),
-    )
-    questions = cur.fetchall()
-
-    if request.method == "POST":
-        # 選択式の質問は、送信された値が選択肢に含まれているかサーバー側でも確認する
-        for q_id, _, q_type, choices_json in questions:
-            if q_type == "choice":
-                choices = json.loads(choices_json)
-                answer_text = request.form.get(f"question_{q_id}", "").strip()
-                if answer_text not in choices:
-                    cur.close()
-                    conn.close()
-                    flash("選択肢の中から選んでください")
-                    return redirect(url_for("surveys.answer_survey", survey_id=survey_id))
-
-        # 記名アンケートは、同じ従業員が二重に回答できないようにする（匿名は対象外）
-        if not survey[2]:
-            cur.execute(
-                fix("SELECT id FROM survey_responses WHERE survey_id = %s AND employee_id = %s"),
-                (survey_id, session["employee_id"]),
-            )
-            if cur.fetchone():
-                cur.close()
-                conn.close()
-                flash("既に回答済みです")
-                return redirect(url_for("surveys.list_surveys"))
-
-        employee_id = None if survey[2] == 1 else session["employee_id"]
-        response_id = insert_returning_id(
-            cur,
-            "INSERT INTO survey_responses (survey_id, employee_id, submitted_at) VALUES (%s, %s, %s)",
-            (survey_id, employee_id, datetime.now(timezone.utc).isoformat()),
+        cur.execute(
+            fix(
+                "SELECT id, question_text, question_type, choices FROM survey_questions "
+                "WHERE survey_id = %s ORDER BY sort_order"
+            ),
+            (survey_id,),
         )
-        for q_id, _, _, _ in questions:
-            answer_text = request.form.get(f"question_{q_id}", "").strip()
-            cur.execute(
-                fix("INSERT INTO survey_answers (response_id, question_id, answer_text) VALUES (%s, %s, %s)"),
-                (response_id, q_id, answer_text),
-            )
-        conn.commit()
-        cur.close()
-        conn.close()
-        flash("回答ありがとうございました")
-        return redirect(url_for("surveys.list_surveys"))
+        questions = cur.fetchall()
 
-    cur.close()
-    conn.close()
+        if request.method == "POST":
+            # 選択式の質問は、送信された値が選択肢に含まれているかサーバー側でも確認する
+            for q_id, _, q_type, choices_json in questions:
+                if q_type == "choice":
+                    choices = json.loads(choices_json)
+                    answer_text = request.form.get(f"question_{q_id}", "").strip()
+                    if answer_text not in choices:
+                        flash("選択肢の中から選んでください")
+                        return redirect(url_for("surveys.answer_survey", survey_id=survey_id))
+
+            # 記名アンケートは、同じ従業員が二重に回答できないようにする（匿名は対象外）
+            if not survey[2]:
+                cur.execute(
+                    fix("SELECT id FROM survey_responses WHERE survey_id = %s AND employee_id = %s"),
+                    (survey_id, session["employee_id"]),
+                )
+                if cur.fetchone():
+                    flash("既に回答済みです")
+                    return redirect(url_for("surveys.list_surveys"))
+
+            employee_id = None if survey[2] == 1 else session["employee_id"]
+            response_id = insert_returning_id(
+                cur,
+                "INSERT INTO survey_responses (survey_id, employee_id, submitted_at) VALUES (%s, %s, %s)",
+                (survey_id, employee_id, datetime.now(timezone.utc).isoformat()),
+            )
+            for q_id, _, _, _ in questions:
+                answer_text = request.form.get(f"question_{q_id}", "").strip()
+                cur.execute(
+                    fix("INSERT INTO survey_answers (response_id, question_id, answer_text) VALUES (%s, %s, %s)"),
+                    (response_id, q_id, answer_text),
+                )
+            flash("回答ありがとうございました")
+            return redirect(url_for("surveys.list_surveys"))
+
     return render_template("surveys_answer.html", survey=survey, questions=questions)
 
 
 def _build_results(survey_id: int):
     """アンケートの集計結果を組み立てる（画面表示・Excel出力の両方で使う）"""
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute(fix("SELECT id, title, is_anonymous FROM surveys WHERE id = %s"), (survey_id,))
-    survey = cur.fetchone()
-    if not survey:
-        cur.close()
-        conn.close()
-        return None, 0, [], []
+    with db_cursor() as cur:
+        cur.execute(fix("SELECT id, title, is_anonymous FROM surveys WHERE id = %s"), (survey_id,))
+        survey = cur.fetchone()
+        if not survey:
+            return None, 0, [], []
 
-    cur.execute(
-        fix(
-            "SELECT id, question_text, question_type, choices FROM survey_questions "
-            "WHERE survey_id = %s ORDER BY sort_order"
-        ),
-        (survey_id,),
-    )
-    questions = cur.fetchall()
-    cur.execute(fix("SELECT COUNT(*) FROM survey_responses WHERE survey_id = %s"), (survey_id,))
-    response_count = cur.fetchone()[0]
-
-    results = []
-    for q_id, q_text, q_type, choices_json in questions:
-        cur.execute(fix("SELECT answer_text FROM survey_answers WHERE question_id = %s"), (q_id,))
-        answers = [r[0] for r in cur.fetchall()]
-        if q_type == "choice":
-            choices = json.loads(choices_json) if choices_json else []
-            counts = {c: 0 for c in choices}
-            for a in answers:
-                if a in counts:
-                    counts[a] += 1
-            results.append({"question": q_text, "type": "choice", "counts": counts})
-        else:
-            results.append({"question": q_text, "type": "free", "answers": [a for a in answers if a]})
-
-    # 記名アンケートのみ、回答者名の一覧を取得する（匿名は個人が特定できるためクエリ自体を実行しない）
-    respondent_names = []
-    if not survey[2]:
         cur.execute(
             fix(
-                "SELECT employees.name FROM survey_responses "
-                "JOIN employees ON employees.id = survey_responses.employee_id "
-                "WHERE survey_responses.survey_id = %s ORDER BY survey_responses.submitted_at"
+                "SELECT id, question_text, question_type, choices FROM survey_questions "
+                "WHERE survey_id = %s ORDER BY sort_order"
             ),
             (survey_id,),
         )
-        respondent_names = [r[0] for r in cur.fetchall()]
+        questions = cur.fetchall()
+        cur.execute(fix("SELECT COUNT(*) FROM survey_responses WHERE survey_id = %s"), (survey_id,))
+        response_count = cur.fetchone()[0]
 
-    cur.close()
-    conn.close()
+        results = []
+        for q_id, q_text, q_type, choices_json in questions:
+            cur.execute(fix("SELECT answer_text FROM survey_answers WHERE question_id = %s"), (q_id,))
+            answers = [r[0] for r in cur.fetchall()]
+            if q_type == "choice":
+                choices = json.loads(choices_json) if choices_json else []
+                counts = {c: 0 for c in choices}
+                for a in answers:
+                    if a in counts:
+                        counts[a] += 1
+                results.append({"question": q_text, "type": "choice", "counts": counts})
+            else:
+                results.append({"question": q_text, "type": "free", "answers": [a for a in answers if a]})
+
+        # 記名アンケートのみ、回答者名の一覧を取得する（匿名は個人が特定できるためクエリ自体を実行しない）
+        respondent_names = []
+        if not survey[2]:
+            cur.execute(
+                fix(
+                    "SELECT employees.name FROM survey_responses "
+                    "JOIN employees ON employees.id = survey_responses.employee_id "
+                    "WHERE survey_responses.survey_id = %s ORDER BY survey_responses.submitted_at"
+                ),
+                (survey_id,),
+            )
+            respondent_names = [r[0] for r in cur.fetchall()]
+
     return survey, response_count, results, respondent_names
 
 

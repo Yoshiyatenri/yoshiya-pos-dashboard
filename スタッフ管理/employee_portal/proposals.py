@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
 from auth import admin_required, employee_required
-from db import fix, get_conn
+from db import db_cursor, fix
 
 bp = Blueprint("proposals", __name__)
 
@@ -22,15 +22,11 @@ def submit_proposal():
             return redirect(url_for("proposals.submit_proposal"))
 
         employee_id = None if is_anonymous else session["employee_id"]
-        conn = get_conn()
-        cur = conn.cursor()
-        cur.execute(
-            fix("INSERT INTO proposals (employee_id, content, status, created_at) VALUES (%s, %s, %s, %s)"),
-            (employee_id, content, STATUSES[0], datetime.now(timezone.utc).isoformat()),
-        )
-        conn.commit()
-        cur.close()
-        conn.close()
+        with db_cursor(commit=True) as cur:
+            cur.execute(
+                fix("INSERT INTO proposals (employee_id, content, status, created_at) VALUES (%s, %s, %s, %s)"),
+                (employee_id, content, STATUSES[0], datetime.now(timezone.utc).isoformat()),
+            )
         flash("提案を送信しました")
         return redirect(url_for("proposals.submit_proposal"))
 
@@ -40,19 +36,16 @@ def submit_proposal():
 @bp.route("/admin/proposals")
 @admin_required
 def admin_proposals():
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT proposals.id, employees.name, proposals.content, proposals.status, proposals.created_at
-        FROM proposals
-        LEFT JOIN employees ON employees.id = proposals.employee_id
-        ORDER BY proposals.created_at DESC
-        """
-    )
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
+    with db_cursor() as cur:
+        cur.execute(
+            """
+            SELECT proposals.id, employees.name, proposals.content, proposals.status, proposals.created_at
+            FROM proposals
+            LEFT JOIN employees ON employees.id = proposals.employee_id
+            ORDER BY proposals.created_at DESC
+            """
+        )
+        rows = cur.fetchall()
     return render_template("proposals_admin.html", proposals=rows, statuses=STATUSES)
 
 
@@ -63,10 +56,6 @@ def update_status(proposal_id: int):
     if status not in STATUSES:
         flash("不正なステータスです")
         return redirect(url_for("proposals.admin_proposals"))
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute(fix("UPDATE proposals SET status = %s WHERE id = %s"), (status, proposal_id))
-    conn.commit()
-    cur.close()
-    conn.close()
+    with db_cursor(commit=True) as cur:
+        cur.execute(fix("UPDATE proposals SET status = %s WHERE id = %s"), (status, proposal_id))
     return redirect(url_for("proposals.admin_proposals"))

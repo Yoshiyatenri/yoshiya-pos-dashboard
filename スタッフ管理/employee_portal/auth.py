@@ -3,7 +3,7 @@ from functools import wraps
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
-from db import get_conn, load_config
+from db import db_cursor, load_config
 
 bp = Blueprint("auth", __name__)
 
@@ -53,12 +53,9 @@ def select_employee():
     if session.get("employee_id"):
         return redirect(url_for("employee_menu"))
 
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("SELECT id, name FROM employees WHERE is_active = 1 ORDER BY name")
-    employees = cur.fetchall()
-    cur.close()
-    conn.close()
+    with db_cursor() as cur:
+        cur.execute("SELECT id, name FROM employees WHERE is_active = 1 ORDER BY name")
+        employees = cur.fetchall()
 
     if request.method == "POST":
         employee_id = request.form.get("employee_id", "")

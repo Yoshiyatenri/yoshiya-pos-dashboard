@@ -4,6 +4,7 @@
 import json
 import os
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 try:
@@ -67,6 +68,24 @@ def get_conn():
     if use_pg():
         return psycopg2.connect(get_db_url())
     return sqlite3.connect(get_sqlite_path())
+
+
+@contextmanager
+def db_cursor(commit: bool = False):
+    """DB接続とカーソルをまとめて管理するcontext manager。
+
+    例外が発生してもconn.close()を必ず実行するため、接続リーク（コネクションを
+    閉じ忘れて残り続けること）を防ぐ。commit=Trueの場合、with文の中身が正常に
+    終わった時のみconn.commit()を実行する。
+    """
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        yield cur
+        if commit:
+            conn.commit()
+    finally:
+        conn.close()
 
 
 def ph(n: int) -> str:
