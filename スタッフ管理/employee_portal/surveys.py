@@ -210,26 +210,39 @@ def _build_results(survey_id: int):
             else:
                 results.append({"question": q_text, "type": "free", "answers": [a for a in answers if a]})
 
-        # 記名アンケートのみ、回答者名の一覧を取得する（匿名は個人が特定できるためクエリ自体を実行しない）
-        respondent_names = []
-        if not survey[2]:
+        # 個別回答一覧（1回答＝1件として、その回答内の全質問への回答をまとめる）
+        # 匿名の回答はemployee_idがNULLのため、LEFT JOINしても回答者名は取得されない
+        cur.execute(
+            fix(
+                "SELECT survey_responses.id, employees.name FROM survey_responses "
+                "LEFT JOIN employees ON employees.id = survey_responses.employee_id "
+                "WHERE survey_responses.survey_id = %s ORDER BY survey_responses.submitted_at"
+            ),
+            (survey_id,),
+        )
+        response_rows = cur.fetchall()
+
+        individual_responses = []
+        for response_id, respondent_name in response_rows:
             cur.execute(
                 fix(
-                    "SELECT employees.name FROM survey_responses "
-                    "JOIN employees ON employees.id = survey_responses.employee_id "
-                    "WHERE survey_responses.survey_id = %s ORDER BY survey_responses.submitted_at"
+                    "SELECT survey_questions.question_text, survey_answers.answer_text "
+                    "FROM survey_answers "
+                    "JOIN survey_questions ON survey_questions.id = survey_answers.question_id "
+                    "WHERE survey_answers.response_id = %s "
+                    "ORDER BY survey_questions.sort_order"
                 ),
-                (survey_id,),
+                (response_id,),
             )
-            respondent_names = [r[0] for r in cur.fetchall()]
+            individual_responses.append({"respondent": respondent_name, "answers": cur.fetchall()})
 
-    return survey, response_count, results, respondent_names
+    return survey, response_count, results, individual_responses
 
 
 @bp.route("/admin/surveys/<int:survey_id>/results")
 @admin_required
 def survey_results(survey_id: int):
-    survey, response_count, results, respondent_names = _build_results(survey_id)
+    survey, response_count, results, individual_responses = _build_results(survey_id)
     if not survey:
         flash("アンケートが見つかりません")
         return redirect(url_for("surveys.admin_surveys"))
@@ -238,14 +251,14 @@ def survey_results(survey_id: int):
         survey=survey,
         response_count=response_count,
         results=results,
-        respondent_names=respondent_names,
+        individual_responses=individual_responses,
     )
 
 
 @bp.route("/admin/surveys/<int:survey_id>/results.xlsx")
 @admin_required
 def survey_results_excel(survey_id: int):
-    survey, response_count, results, respondent_names = _build_results(survey_id)
+    survey, response_count, results, individual_responses = _build_results(survey_id)
     if not survey:
         flash("アンケートが見つかりません")
         return redirect(url_for("surveys.admin_surveys"))
@@ -255,8 +268,6 @@ def survey_results_excel(survey_id: int):
     ws.title = "集計結果"
     ws.append([survey[1]])
     ws.append([f"回答数: {response_count}"])
-    if respondent_names:
-        ws.append(["回答者", "、".join(respondent_names)])
     ws.append([])
     for result in results:
         ws.append([result["question"]])
@@ -267,6 +278,11 @@ def survey_results_excel(survey_id: int):
             for answer in result["answers"]:
                 ws.append(["", answer])
         ws.append([])
+
+    ws2 = wb.create_sheet("個別回答")
+    ws2.append(["回答者"] + [r["question"] for r in results])
+    for response in individual_responses:
+        ws2.append([response["respondent"] or "匿名"] + [answer_text for _, answer_text in response["answers"]])
 
     buffer = BytesIO()
     wb.save(buffer)
