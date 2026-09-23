@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>アンケート管理</h2>
+<form method="post" action="{{ url_for('surveys.create_survey') }}">
+  <input type="text" name="title" placeholder="タイトル" required>
+  <label><input type="checkbox" name="is_anonymous"> 匿名アンケートにする</label>
+  <button type="submit">新規作成</button>
+</form>
+<table>
+  <tr><th>タイトル</th><th>匿名</th><th>状態</th><th>操作</th></tr>
+  {% for id, title, is_anonymous, is_open, created_at in surveys %}
+  <tr>
+    <td>{{ title }}</td>
+    <td>{{ "匿名" if is_anonymous else "記名" }}</td>
+    <td>{{ "公開中" if is_open else "下書き" }}</td>
+    <td>
+      <a href="{{ url_for('surveys.edit_survey', survey_id=id) }}">編集</a>
+      {% if is_open %}
+      <form method="post" action="{{ url_for('surveys.close_survey', survey_id=id) }}" style="display:inline">
+        <button type="submit">締め切る</button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('surveys.publish_survey', survey_id=id) }}" style="display:inline">
+        <button type="submit">公開する</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

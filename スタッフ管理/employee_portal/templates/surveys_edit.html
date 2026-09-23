@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ survey[1] }} の編集</h2>
+<h3>質問一覧</h3>
+<ul>
+  {% for id, text, qtype, choices in questions %}
+  <li>{{ text }}（{{ "選択式" if qtype == "choice" else "自由記述" }}）</li>
+  {% endfor %}
+</ul>
+<h3>質問を追加</h3>
+<form method="post" action="{{ url_for('surveys.add_question', survey_id=survey[0]) }}">
+  <input type="text" name="question_text" placeholder="質問文" required>
+  <select name="question_type">
+    <option value="free">自由記述</option>
+    <option value="choice">選択式</option>
+  </select>
+  <input type="text" name="choices" placeholder="選択肢（カンマ区切り、選択式のみ）">
+  <button type="submit">追加</button>
+</form>
+{% if not survey[3] %}
+<form method="post" action="{{ url_for('surveys.publish_survey', survey_id=survey[0]) }}">
+  <button type="submit">このアンケートを公開する</button>
+</form>
+{% endif %}
+{% endblock %}

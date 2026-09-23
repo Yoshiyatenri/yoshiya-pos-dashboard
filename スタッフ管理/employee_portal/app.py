@@ -1,4 +1,5 @@
 """従業員ポータル Flask アプリケーション エントリポイント"""
+import json
 import logging
 import os
 
@@ -7,6 +8,7 @@ from flask import Flask, redirect, render_template, session, url_for
 import auth
 import employees
 import goals
+import surveys
 from db import init_schema, load_config
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -19,12 +21,14 @@ def create_app() -> Flask:
     app.secret_key = cfg.get("secret_key", "dev-secret-change-me")
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.jinja_env.filters["from_json"] = json.loads
 
     init_schema()
 
     app.register_blueprint(auth.bp)
     app.register_blueprint(employees.bp)
     app.register_blueprint(goals.bp)
+    app.register_blueprint(surveys.bp)
 
     @app.errorhandler(500)
     def handle_server_error(e):

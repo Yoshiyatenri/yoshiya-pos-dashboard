@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ survey[1] }}</h2>
+<form method="post">
+  {% for id, text, qtype, choices in questions %}
+  <div class="question">
+    <label>{{ text }}</label>
+    {% if qtype == "choice" %}
+    <select name="question_{{ id }}" required>
+      <option value="">選択してください</option>
+      {% for choice in choices|from_json %}
+      <option value="{{ choice }}">{{ choice }}</option>
+      {% endfor %}
+    </select>
+    {% else %}
+    <textarea name="question_{{ id }}"></textarea>
+    {% endif %}
+  </div>
+  {% endfor %}
+  <button type="submit">回答する</button>
+</form>
+{% endblock %}
