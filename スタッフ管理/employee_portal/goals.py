@@ -1,7 +1,9 @@
 """目標管理（店長）・自己採点（従業員）"""
 from datetime import datetime, timezone
+from io import BytesIO
 
-from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, flash, redirect, render_template, request, send_file, session, url_for
+from openpyxl import Workbook
 
 from auth import admin_required, employee_required
 from db import db_cursor, fix
@@ -70,6 +72,39 @@ def admin_goal_scores(employee_id: int):
             )
             scores_by_goal[goal_id] = cur.fetchall()
     return render_template("goal_scores_admin.html", goals=goals_list, scores_by_goal=scores_by_goal)
+
+
+@bp.route("/admin/goals/results.xlsx")
+@admin_required
+def goal_scores_excel():
+    with db_cursor() as cur:
+        cur.execute(
+            """
+            SELECT employees.name, goals.goal_text, goal_scores.score, goal_scores.comment, goal_scores.scored_at
+            FROM goals
+            JOIN employees ON employees.id = goals.employee_id
+            LEFT JOIN goal_scores ON goal_scores.goal_id = goals.id
+            ORDER BY employees.name, goals.created_at, goal_scores.scored_at
+            """
+        )
+        rows = cur.fetchall()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "目標評価"
+    ws.append(["従業員名", "目標", "評価", "コメント", "採点日時"])
+    for name, goal_text, score, comment, scored_at in rows:
+        ws.append([name, goal_text, score, comment, scored_at])
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name="goal_scores.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 
 @bp.route("/goals", methods=["GET", "POST"])
