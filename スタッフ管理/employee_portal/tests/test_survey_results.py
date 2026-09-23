@@ -22,6 +22,23 @@ def _create_published_survey_with_choice_question(client):
     return survey_id
 
 
+def _create_published_anonymous_survey_with_free_question(client, title="匿名意見アンケート"):
+    _login_admin(client)
+    client.post("/admin/surveys/create", data={"title": title, "is_anonymous": "on"})
+    conn = db_module.get_conn()
+    cur = conn.cursor()
+    cur.execute(db_module.fix("SELECT id FROM surveys WHERE title = %s"), (title,))
+    survey_id = cur.fetchone()[0]
+    conn.close()
+
+    client.post(
+        f"/admin/surveys/{survey_id}/questions/add",
+        data={"question_text": "率直な意見", "question_type": "free"},
+    )
+    client.post(f"/admin/surveys/{survey_id}/publish")
+    return survey_id
+
+
 def _answer_as_new_employee(client, survey_id, name, answer_map):
     client.post("/admin/employees/add", data={"name": name})
     conn = db_module.get_conn()
@@ -59,3 +76,31 @@ def test_results_excel_download_returns_xlsx(client):
     resp = client.get(f"/admin/surveys/{survey_id}/results.xlsx")
     assert resp.status_code == 200
     assert resp.mimetype == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def test_results_page_shows_respondent_name_for_named_survey(client):
+    survey_id = _create_published_survey_with_choice_question(client)
+    conn = db_module.get_conn()
+    cur = conn.cursor()
+    cur.execute(db_module.fix("SELECT id FROM survey_questions WHERE survey_id = %s"), (survey_id,))
+    question_id = cur.fetchone()[0]
+    conn.close()
+
+    _answer_as_new_employee(client, survey_id, "山田花子", {f"question_{question_id}": "十分"})
+
+    resp = client.get(f"/admin/surveys/{survey_id}/results")
+    assert "山田花子".encode("utf-8") in resp.data
+
+
+def test_results_page_hides_respondent_list_for_anonymous_survey(client):
+    survey_id = _create_published_anonymous_survey_with_free_question(client)
+    conn = db_module.get_conn()
+    cur = conn.cursor()
+    cur.execute(db_module.fix("SELECT id FROM survey_questions WHERE survey_id = %s"), (survey_id,))
+    question_id = cur.fetchone()[0]
+    conn.close()
+
+    _answer_as_new_employee(client, survey_id, "鈴木一郎", {f"question_{question_id}": "特になし"})
+
+    resp = client.get(f"/admin/surveys/{survey_id}/results")
+    assert "鈴木一郎".encode("utf-8") not in resp.data

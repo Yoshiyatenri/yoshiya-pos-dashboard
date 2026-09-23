@@ -125,6 +125,75 @@ def test_invalid_choice_answer_is_rejected(client):
     assert count == 0
 
 
+def test_named_survey_rejects_duplicate_answer_from_same_employee(client):
+    survey_id = _create_survey(client, title="重複確認調査")
+    client.post(
+        f"/admin/surveys/{survey_id}/questions/add",
+        data={"question_text": "感想", "question_type": "free"},
+    )
+    client.post(f"/admin/surveys/{survey_id}/publish")
+
+    _add_employee_and_login(client)
+    conn = db_module.get_conn()
+    cur = conn.cursor()
+    cur.execute(db_module.fix("SELECT id FROM survey_questions WHERE survey_id = %s"), (survey_id,))
+    question_id = cur.fetchone()[0]
+    conn.close()
+
+    client.post(
+        f"/surveys/{survey_id}/answer",
+        data={f"question_{question_id}": "1回目"},
+        follow_redirects=True,
+    )
+    resp = client.post(
+        f"/surveys/{survey_id}/answer",
+        data={f"question_{question_id}": "2回目"},
+        follow_redirects=True,
+    )
+    assert "既に回答済みです".encode("utf-8") in resp.data
+
+    conn = db_module.get_conn()
+    cur = conn.cursor()
+    cur.execute(db_module.fix("SELECT COUNT(*) FROM survey_responses WHERE survey_id = %s"), (survey_id,))
+    count = cur.fetchone()[0]
+    conn.close()
+    assert count == 1
+
+
+def test_anonymous_survey_allows_multiple_answers_from_same_employee(client):
+    survey_id = _create_survey(client, title="匿名複数回答調査", anonymous=True)
+    client.post(
+        f"/admin/surveys/{survey_id}/questions/add",
+        data={"question_text": "率直な意見", "question_type": "free"},
+    )
+    client.post(f"/admin/surveys/{survey_id}/publish")
+
+    _add_employee_and_login(client)
+    conn = db_module.get_conn()
+    cur = conn.cursor()
+    cur.execute(db_module.fix("SELECT id FROM survey_questions WHERE survey_id = %s"), (survey_id,))
+    question_id = cur.fetchone()[0]
+    conn.close()
+
+    client.post(
+        f"/surveys/{survey_id}/answer",
+        data={f"question_{question_id}": "1回目"},
+        follow_redirects=True,
+    )
+    client.post(
+        f"/surveys/{survey_id}/answer",
+        data={f"question_{question_id}": "2回目"},
+        follow_redirects=True,
+    )
+
+    conn = db_module.get_conn()
+    cur = conn.cursor()
+    cur.execute(db_module.fix("SELECT COUNT(*) FROM survey_responses WHERE survey_id = %s"), (survey_id,))
+    count = cur.fetchone()[0]
+    conn.close()
+    assert count == 2
+
+
 def test_anonymous_survey_does_not_store_employee_id(client):
     survey_id = _create_survey(client, title="匿名調査", anonymous=True)
     client.post(

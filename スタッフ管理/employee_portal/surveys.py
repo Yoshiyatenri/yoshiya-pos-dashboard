@@ -177,6 +177,18 @@ def answer_survey(survey_id: int):
                     flash("選択肢の中から選んでください")
                     return redirect(url_for("surveys.answer_survey", survey_id=survey_id))
 
+        # 記名アンケートは、同じ従業員が二重に回答できないようにする（匿名は対象外）
+        if not survey[2]:
+            cur.execute(
+                fix("SELECT id FROM survey_responses WHERE survey_id = %s AND employee_id = %s"),
+                (survey_id, session["employee_id"]),
+            )
+            if cur.fetchone():
+                cur.close()
+                conn.close()
+                flash("既に回答済みです")
+                return redirect(url_for("surveys.list_surveys"))
+
         employee_id = None if survey[2] == 1 else session["employee_id"]
         response_id = insert_returning_id(
             cur,
@@ -209,7 +221,7 @@ def _build_results(survey_id: int):
     if not survey:
         cur.close()
         conn.close()
-        return None, 0, []
+        return None, 0, [], []
 
     cur.execute(
         fix(
@@ -236,25 +248,44 @@ def _build_results(survey_id: int):
         else:
             results.append({"question": q_text, "type": "free", "answers": [a for a in answers if a]})
 
+    # 記名アンケートのみ、回答者名の一覧を取得する（匿名は個人が特定できるためクエリ自体を実行しない）
+    respondent_names = []
+    if not survey[2]:
+        cur.execute(
+            fix(
+                "SELECT employees.name FROM survey_responses "
+                "JOIN employees ON employees.id = survey_responses.employee_id "
+                "WHERE survey_responses.survey_id = %s ORDER BY survey_responses.submitted_at"
+            ),
+            (survey_id,),
+        )
+        respondent_names = [r[0] for r in cur.fetchall()]
+
     cur.close()
     conn.close()
-    return survey, response_count, results
+    return survey, response_count, results, respondent_names
 
 
 @bp.route("/admin/surveys/<int:survey_id>/results")
 @admin_required
 def survey_results(survey_id: int):
-    survey, response_count, results = _build_results(survey_id)
+    survey, response_count, results, respondent_names = _build_results(survey_id)
     if not survey:
         flash("アンケートが見つかりません")
         return redirect(url_for("surveys.admin_surveys"))
-    return render_template("surveys_results.html", survey=survey, response_count=response_count, results=results)
+    return render_template(
+        "surveys_results.html",
+        survey=survey,
+        response_count=response_count,
+        results=results,
+        respondent_names=respondent_names,
+    )
 
 
 @bp.route("/admin/surveys/<int:survey_id>/results.xlsx")
 @admin_required
 def survey_results_excel(survey_id: int):
-    survey, response_count, results = _build_results(survey_id)
+    survey, response_count, results, respondent_names = _build_results(survey_id)
     if not survey:
         flash("アンケートが見つかりません")
         return redirect(url_for("surveys.admin_surveys"))
@@ -264,6 +295,8 @@ def survey_results_excel(survey_id: int):
     ws.title = "集計結果"
     ws.append([survey[1]])
     ws.append([f"回答数: {response_count}"])
+    if respondent_names:
+        ws.append(["回答者", "、".join(respondent_names)])
     ws.append([])
     for result in results:
         ws.append([result["question"]])
