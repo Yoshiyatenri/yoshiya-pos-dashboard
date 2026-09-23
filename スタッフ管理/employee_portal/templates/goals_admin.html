@@ -8,7 +8,9 @@
     <option value="{{ id }}">{{ name }}</option>
     {% endfor %}
   </select>
-  <input type="text" name="goal_text" placeholder="目標内容" required>
+  <br>
+  <textarea name="goal_text" placeholder="目標内容（1行につき1つの目標。複数行まとめて登録できます）" rows="4" required></textarea>
+  <br>
   <button type="submit">登録</button>
 </form>
 <table>

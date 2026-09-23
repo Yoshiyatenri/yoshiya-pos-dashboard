@@ -33,16 +33,18 @@ def admin_goals():
 @admin_required
 def add_goal():
     employee_id = request.form.get("employee_id", "")
-    goal_text = request.form.get("goal_text", "").strip()
-    if not employee_id or not goal_text:
+    raw_text = request.form.get("goal_text", "")
+    goal_texts = [line.strip() for line in raw_text.splitlines() if line.strip()]
+    if not employee_id or not goal_texts:
         flash("従業員と目標内容を入力してください")
         return redirect(url_for("goals.admin_goals"))
     with db_cursor(commit=True) as cur:
-        cur.execute(
-            fix("INSERT INTO goals (employee_id, goal_text, is_active, created_at) VALUES (%s, %s, 1, %s)"),
-            (employee_id, goal_text, datetime.now(timezone.utc).isoformat()),
-        )
-    flash("目標を登録しました")
+        for goal_text in goal_texts:
+            cur.execute(
+                fix("INSERT INTO goals (employee_id, goal_text, is_active, created_at) VALUES (%s, %s, 1, %s)"),
+                (employee_id, goal_text, datetime.now(timezone.utc).isoformat()),
+            )
+    flash(f"目標を{len(goal_texts)}件登録しました")
     return redirect(url_for("goals.admin_goals"))
 
 

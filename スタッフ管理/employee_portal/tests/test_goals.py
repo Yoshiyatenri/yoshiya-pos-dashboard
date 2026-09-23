@@ -59,6 +59,89 @@ def test_employee_sees_own_goal_and_can_score_it(client):
     assert "採点を記録しました".encode("utf-8") in resp.data
 
 
+def test_admin_can_add_multiple_goals_at_once(client):
+    employee_id = _add_employee_and_login(client)
+    client.get("/logout")
+    _login_admin(client)
+    resp = client.post(
+        "/admin/goals/add",
+        data={
+            "employee_id": str(employee_id),
+            "goal_text": "接客満足度を上げる\n品出しを早くする\nレジ締めを正確にする",
+        },
+        follow_redirects=True,
+    )
+    assert "接客満足度を上げる".encode("utf-8") in resp.data
+    assert "品出しを早くする".encode("utf-8") in resp.data
+    assert "レジ締めを正確にする".encode("utf-8") in resp.data
+
+    conn = db_module.get_conn()
+    cur = conn.cursor()
+    cur.execute(db_module.fix("SELECT COUNT(*) FROM goals WHERE employee_id = %s"), (employee_id,))
+    count = cur.fetchone()[0]
+    conn.close()
+    assert count == 3
+
+
+def test_blank_lines_in_multi_goal_input_are_ignored(client):
+    employee_id = _add_employee_and_login(client)
+    client.get("/logout")
+    _login_admin(client)
+    client.post(
+        "/admin/goals/add",
+        data={"employee_id": str(employee_id), "goal_text": "目標A\n\n \n目標B\n"},
+        follow_redirects=True,
+    )
+
+    conn = db_module.get_conn()
+    cur = conn.cursor()
+    cur.execute(db_module.fix("SELECT COUNT(*) FROM goals WHERE employee_id = %s"), (employee_id,))
+    count = cur.fetchone()[0]
+    conn.close()
+    assert count == 2
+
+
+def test_goals_added_in_batch_can_be_scored_independently(client):
+    employee_id = _add_employee_and_login(client)
+    client.get("/logout")
+    _login_admin(client)
+    client.post(
+        "/admin/goals/add",
+        data={"employee_id": str(employee_id), "goal_text": "目標A\n目標B"},
+    )
+
+    conn = db_module.get_conn()
+    cur = conn.cursor()
+    cur.execute(
+        db_module.fix("SELECT id, goal_text FROM goals WHERE employee_id = %s ORDER BY id"), (employee_id,)
+    )
+    rows = cur.fetchall()
+    conn.close()
+    assert len(rows) == 2
+    goal_a_id = rows[0][0]
+    goal_b_id = rows[1][0]
+
+    client.get("/logout")
+    client.post("/login", data={"password": "general123"})
+    client.post("/select-employee", data={"employee_id": str(employee_id)})
+    resp = client.post(
+        f"/goals/{goal_a_id}/score",
+        data={"score": "3", "comment": "目標Aだけ採点"},
+        follow_redirects=True,
+    )
+    assert "採点を記録しました".encode("utf-8") in resp.data
+
+    conn = db_module.get_conn()
+    cur = conn.cursor()
+    cur.execute(db_module.fix("SELECT COUNT(*) FROM goal_scores WHERE goal_id = %s"), (goal_a_id,))
+    count_a = cur.fetchone()[0]
+    cur.execute(db_module.fix("SELECT COUNT(*) FROM goal_scores WHERE goal_id = %s"), (goal_b_id,))
+    count_b = cur.fetchone()[0]
+    conn.close()
+    assert count_a == 1
+    assert count_b == 0
+
+
 def test_employee_cannot_score_other_employees_goal(client):
     employee_a = _add_employee_and_login(client, name="Aさん")
     client.get("/logout")
