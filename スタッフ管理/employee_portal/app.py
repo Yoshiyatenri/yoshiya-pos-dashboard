@@ -8,6 +8,7 @@ from flask import Flask, redirect, render_template, session, url_for
 import auth
 import employees
 import goals
+import proposals
 import surveys
 from db import init_schema, load_config
 
@@ -29,6 +30,7 @@ def create_app() -> Flask:
     app.register_blueprint(employees.bp)
     app.register_blueprint(goals.bp)
     app.register_blueprint(surveys.bp)
+    app.register_blueprint(proposals.bp)
 
     @app.errorhandler(500)
     def handle_server_error(e):
