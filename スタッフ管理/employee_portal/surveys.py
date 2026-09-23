@@ -164,6 +164,17 @@ def answer_survey(survey_id: int):
     questions = cur.fetchall()
 
     if request.method == "POST":
+        # 選択式の質問は、送信された値が選択肢に含まれているかサーバー側でも確認する
+        for q_id, _, q_type, choices_json in questions:
+            if q_type == "choice":
+                choices = json.loads(choices_json)
+                answer_text = request.form.get(f"question_{q_id}", "").strip()
+                if answer_text not in choices:
+                    cur.close()
+                    conn.close()
+                    flash("選択肢の中から選んでください")
+                    return redirect(url_for("surveys.answer_survey", survey_id=survey_id))
+
         employee_id = None if survey[2] == 1 else session["employee_id"]
         response_id = insert_returning_id(
             cur,

@@ -95,6 +95,36 @@ def test_published_survey_can_be_answered_by_employee(client):
     assert row[0] == employee_id
 
 
+def test_invalid_choice_answer_is_rejected(client):
+    survey_id = _create_survey(client, title="選択式調査")
+    client.post(
+        f"/admin/surveys/{survey_id}/questions/add",
+        data={"question_text": "満足度は？", "question_type": "choice", "choices": "十分,やや不足,不足"},
+    )
+    client.post(f"/admin/surveys/{survey_id}/publish")
+
+    _add_employee_and_login(client)
+    conn = db_module.get_conn()
+    cur = conn.cursor()
+    cur.execute(db_module.fix("SELECT id FROM survey_questions WHERE survey_id = %s"), (survey_id,))
+    question_id = cur.fetchone()[0]
+    conn.close()
+
+    resp = client.post(
+        f"/surveys/{survey_id}/answer",
+        data={f"question_{question_id}": "でたらめ"},
+        follow_redirects=True,
+    )
+    assert "選択肢の中から選んでください".encode("utf-8") in resp.data
+
+    conn = db_module.get_conn()
+    cur = conn.cursor()
+    cur.execute(db_module.fix("SELECT COUNT(*) FROM survey_responses WHERE survey_id = %s"), (survey_id,))
+    count = cur.fetchone()[0]
+    conn.close()
+    assert count == 0
+
+
 def test_anonymous_survey_does_not_store_employee_id(client):
     survey_id = _create_survey(client, title="匿名調査", anonymous=True)
     client.post(
