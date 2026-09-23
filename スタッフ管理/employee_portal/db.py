@@ -51,7 +51,11 @@ def get_db_url() -> str:
 def use_pg() -> bool:
     """Supabaseを使うかどうか（URLが正しく設定されている場合のみ）"""
     url = get_db_url()
-    return _psycopg2_ok and bool(url) and "XXXXXXXXXX" not in url
+    if not url or "XXXXXXXXXX" in url:
+        return False
+    if not _psycopg2_ok:
+        raise RuntimeError("db_url が設定されていますが psycopg2 が読み込めません")
+    return True
 
 
 def get_sqlite_path() -> str:

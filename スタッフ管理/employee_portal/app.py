@@ -19,12 +19,18 @@ log = logging.getLogger(__name__)
 def create_app() -> Flask:
     app = Flask(__name__)
     cfg = load_config()
-    app.secret_key = cfg.get("secret_key", "dev-secret-change-me")
+    secret = cfg.get("secret_key")
+    if not secret or secret == "CHANGE_ME":
+        raise RuntimeError("secret_key が未設定です。config.json または EMPLOYEE_PORTAL_SECRET_KEY を設定してください")
+    app.secret_key = secret
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.jinja_env.filters["from_json"] = json.loads
 
-    init_schema()
+    try:
+        init_schema()
+    except Exception:
+        log.exception("起動時のDB初期化に失敗しました")
 
     app.register_blueprint(auth.bp)
     app.register_blueprint(employees.bp)
