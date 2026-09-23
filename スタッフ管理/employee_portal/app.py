@@ -5,6 +5,7 @@ import os
 from flask import Flask, redirect, render_template, session, url_for
 
 import auth
+import employees
 from db import init_schema, load_config
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -21,6 +22,7 @@ def create_app() -> Flask:
     init_schema()
 
     app.register_blueprint(auth.bp)
+    app.register_blueprint(employees.bp)
 
     @app.errorhandler(500)
     def handle_server_error(e):
