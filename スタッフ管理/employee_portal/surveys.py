@@ -1,8 +1,10 @@
-"""アンケート作成（店長）・回答（従業員）"""
+"""アンケート作成（店長）・回答（従業員）・集計・Excel出力"""
 import json
 from datetime import datetime, timezone
+from io import BytesIO
 
-from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, flash, redirect, render_template, request, send_file, session, url_for
+from openpyxl import Workbook
 
 from auth import admin_required, employee_required
 from db import fix, get_conn, insert_returning_id
@@ -196,3 +198,89 @@ def answer_survey(survey_id: int):
     cur.close()
     conn.close()
     return render_template("surveys_answer.html", survey=survey, questions=questions)
+
+
+def _build_results(survey_id: int):
+    """アンケートの集計結果を組み立てる（画面表示・Excel出力の両方で使う）"""
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute(fix("SELECT id, title, is_anonymous FROM surveys WHERE id = %s"), (survey_id,))
+    survey = cur.fetchone()
+    if not survey:
+        cur.close()
+        conn.close()
+        return None, 0, []
+
+    cur.execute(
+        fix(
+            "SELECT id, question_text, question_type, choices FROM survey_questions "
+            "WHERE survey_id = %s ORDER BY sort_order"
+        ),
+        (survey_id,),
+    )
+    questions = cur.fetchall()
+    cur.execute(fix("SELECT COUNT(*) FROM survey_responses WHERE survey_id = %s"), (survey_id,))
+    response_count = cur.fetchone()[0]
+
+    results = []
+    for q_id, q_text, q_type, choices_json in questions:
+        cur.execute(fix("SELECT answer_text FROM survey_answers WHERE question_id = %s"), (q_id,))
+        answers = [r[0] for r in cur.fetchall()]
+        if q_type == "choice":
+            choices = json.loads(choices_json) if choices_json else []
+            counts = {c: 0 for c in choices}
+            for a in answers:
+                if a in counts:
+                    counts[a] += 1
+            results.append({"question": q_text, "type": "choice", "counts": counts})
+        else:
+            results.append({"question": q_text, "type": "free", "answers": [a for a in answers if a]})
+
+    cur.close()
+    conn.close()
+    return survey, response_count, results
+
+
+@bp.route("/admin/surveys/<int:survey_id>/results")
+@admin_required
+def survey_results(survey_id: int):
+    survey, response_count, results = _build_results(survey_id)
+    if not survey:
+        flash("アンケートが見つかりません")
+        return redirect(url_for("surveys.admin_surveys"))
+    return render_template("surveys_results.html", survey=survey, response_count=response_count, results=results)
+
+
+@bp.route("/admin/surveys/<int:survey_id>/results.xlsx")
+@admin_required
+def survey_results_excel(survey_id: int):
+    survey, response_count, results = _build_results(survey_id)
+    if not survey:
+        flash("アンケートが見つかりません")
+        return redirect(url_for("surveys.admin_surveys"))
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "集計結果"
+    ws.append([survey[1]])
+    ws.append([f"回答数: {response_count}"])
+    ws.append([])
+    for result in results:
+        ws.append([result["question"]])
+        if result["type"] == "choice":
+            for choice, count in result["counts"].items():
+                ws.append(["", choice, count])
+        else:
+            for answer in result["answers"]:
+                ws.append(["", answer])
+        ws.append([])
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"survey_{survey_id}_results.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )

@@ -15,6 +15,8 @@
     <td>{{ "公開中" if is_open else "下書き" }}</td>
     <td>
       <a href="{{ url_for('surveys.edit_survey', survey_id=id) }}">編集</a>
+      <a href="{{ url_for('surveys.survey_results', survey_id=id) }}">結果</a>
+      <a href="{{ url_for('surveys.survey_results_excel', survey_id=id) }}">Excel</a>
       {% if is_open %}
       <form method="post" action="{{ url_for('surveys.close_survey', survey_id=id) }}" style="display:inline">
         <button type="submit">締め切る</button>
