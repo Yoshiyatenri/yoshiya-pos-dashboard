@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ name }} さん、こんにちは</h2>
+<ul>
+  <li><a href="{{ url_for('goals.my_goals') }}">目標の自己採点</a></li>
+  <li><a href="{{ url_for('surveys.list_surveys') }}">アンケートに回答</a></li>
+  <li><a href="{{ url_for('proposals.submit_proposal') }}">提案する</a></li>
+</ul>
+{% endblock %}

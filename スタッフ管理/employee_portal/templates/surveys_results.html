@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ survey[1] }} の集計結果</h2>
+<p>回答数: {{ response_count }}</p>
+{% if not survey[2] and respondent_names %}
+<p>回答者: {{ respondent_names|join("、") }}</p>
+{% endif %}
+{% for result in results %}
+<h3>{{ result.question }}</h3>
+{% if result.type == "choice" %}
+<table>
+  <tr><th>選択肢</th><th>件数</th></tr>
+  {% for choice, count in result.counts.items() %}
+  <tr><td>{{ choice }}</td><td>{{ count }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}
+<ul>
+  {% for answer in result.answers %}
+  <li>{{ answer }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endfor %}
+<a href="{{ url_for('surveys.survey_results_excel', survey_id=survey[0]) }}">Excelでダウンロード</a>
+{% endblock %}

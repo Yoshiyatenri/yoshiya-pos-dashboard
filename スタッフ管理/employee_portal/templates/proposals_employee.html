@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>提案する</h2>
+<form method="post">
+  <textarea name="content" placeholder="提案内容" required></textarea>
+  <label><input type="checkbox" name="is_anonymous"> 匿名で送る</label>
+  <button type="submit">送信</button>
+</form>
+{% endblock %}

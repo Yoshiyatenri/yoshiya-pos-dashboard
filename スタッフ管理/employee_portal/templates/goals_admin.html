@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>目標管理</h2>
+<form method="post" action="{{ url_for('goals.add_goal') }}">
+  <select name="employee_id" required>
+    <option value="">従業員を選択</option>
+    {% for id, name in employees %}
+    <option value="{{ id }}">{{ name }}</option>
+    {% endfor %}
+  </select>
+  <input type="text" name="goal_text" placeholder="目標内容" required>
+  <button type="submit">登録</button>
+</form>
+<table>
+  <tr><th>従業員</th><th>目標</th><th>状態</th><th>操作</th></tr>
+  {% for id, employee_id, name, goal_text, is_active in goals %}
+  <tr>
+    <td>{{ name }}</td>
+    <td>{{ goal_text }}</td>
+    <td>{{ "有効" if is_active else "終了" }}</td>
+    <td>
+      <a href="{{ url_for('goals.admin_goal_scores', employee_id=employee_id) }}">採点履歴</a>
+      {% if is_active %}
+      <form method="post" action="{{ url_for('goals.deactivate_goal', goal_id=id) }}" style="display:inline">
+        <button type="submit">終了する</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

@@ -10,6 +10,8 @@ venv/
 # 認証情報を含む設定ファイル（config.jsonにハードコードしないルール）
 売上管理/seisan_config.json
 SNS/config.json
+スタッフ管理/employee_portal/config.json
+スタッフ管理/employee_portal/employee_portal.db
 
 # 個人用ローカル設定
 .claude/settings.local.json

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>従業員マスタ管理</h2>
+<form method="post" action="{{ url_for('employees.add_employee') }}">
+  <input type="text" name="name" placeholder="従業員名" required>
+  <button type="submit">追加</button>
+</form>
+<table>
+  <tr><th>名前</th><th>状態</th><th>操作</th></tr>
+  {% for id, name, is_active in employees %}
+  <tr>
+    <td>{{ name }}</td>
+    <td>{{ "在籍" if is_active else "退職" }}</td>
+    <td>
+      {% if is_active %}
+      <form method="post" action="{{ url_for('employees.deactivate_employee', employee_id=id) }}" style="display:inline">
+        <button type="submit">退職にする</button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('employees.activate_employee', employee_id=id) }}" style="display:inline">
+        <button type="submit">在籍に戻す</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

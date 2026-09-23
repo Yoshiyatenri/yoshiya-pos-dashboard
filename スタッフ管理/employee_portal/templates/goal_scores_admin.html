@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>採点履歴</h2>
+{% for goal_id, goal_text in goals %}
+<h3>{{ goal_text }}</h3>
+<table>
+  <tr><th>日時</th><th>評価</th><th>コメント</th></tr>
+  {% for score, comment, scored_at in scores_by_goal[goal_id] %}
+  <tr><td>{{ scored_at }}</td><td>{{ score }}</td><td>{{ comment }}</td></tr>
+  {% endfor %}
+</table>
+{% endfor %}
+{% endblock %}
