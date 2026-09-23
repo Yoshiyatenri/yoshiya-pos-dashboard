@@ -8,7 +8,7 @@ from db import db_cursor, fix
 
 bp = Blueprint("goals", __name__)
 
-VALID_SCORES = {"1", "2", "3", "4", "5"}
+VALID_SCORES = {str(n) for n in range(0, 11)}
 
 
 @bp.route("/admin/goals")
@@ -91,7 +91,7 @@ def submit_score(goal_id: int):
     score = request.form.get("score", "")
     comment = request.form.get("comment", "").strip()
     if score not in VALID_SCORES:
-        flash("評価は1〜5で選んでください")
+        flash("評価は0〜10で選んでください")
         return redirect(url_for("goals.my_goals"))
 
     employee_id = session["employee_id"]
