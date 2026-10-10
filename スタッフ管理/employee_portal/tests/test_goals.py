@@ -229,6 +229,22 @@ def test_score_history_shows_simplified_datetime(client):
     assert re.search(rb"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", resp.data)
 
 
+def test_score_history_excludes_deactivated_goals(client):
+    employee_id = _add_employee_and_login(client)
+    client.get("/logout")
+    _login_admin(client)
+    client.post(
+        "/admin/goals/add",
+        data={"employee_id": str(employee_id), "goal_text": "有効な目標\n終了した目標"},
+    )
+    goal_active_id, goal_inactive_id = _goal_ids_for(employee_id)
+    client.post(f"/admin/goals/{goal_inactive_id}/deactivate")
+
+    resp = client.get(f"/admin/goals/{employee_id}/scores")
+    assert "有効な目標".encode("utf-8") in resp.data
+    assert "終了した目標".encode("utf-8") not in resp.data
+
+
 def test_employee_cannot_score_other_employees_goal(client):
     employee_a = _add_employee_and_login(client, name="Aさん")
     client.get("/logout")

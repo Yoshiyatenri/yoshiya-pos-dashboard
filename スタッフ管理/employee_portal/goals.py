@@ -62,7 +62,10 @@ def deactivate_goal(goal_id: int):
 @admin_required
 def admin_goal_scores(employee_id: int):
     with db_cursor() as cur:
-        cur.execute(fix("SELECT id, goal_text FROM goals WHERE employee_id = %s ORDER BY created_at"), (employee_id,))
+        cur.execute(
+            fix("SELECT id, goal_text FROM goals WHERE employee_id = %s AND is_active = 1 ORDER BY created_at"),
+            (employee_id,),
+        )
         goals_list = cur.fetchall()
         scores_by_goal = {}
         for goal_id, _ in goals_list:
