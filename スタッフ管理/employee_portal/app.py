@@ -2,8 +2,18 @@
 import json
 import logging
 import os
+from datetime import datetime, timedelta, timezone
 
 from flask import Flask, redirect, render_template, session, url_for
+
+JST = timezone(timedelta(hours=9))
+
+
+def format_datetime(value):
+    """ISO形式の日時文字列を「YYYY-MM-DD HH:MM」(日本時間)の簡潔な表示に変換する"""
+    if not value:
+        return value
+    return datetime.fromisoformat(value).astimezone(JST).strftime("%Y-%m-%d %H:%M")
 
 import auth
 import employees
@@ -26,6 +36,7 @@ def create_app() -> Flask:
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.jinja_env.filters["from_json"] = json.loads
+    app.jinja_env.filters["format_datetime"] = format_datetime
 
     try:
         init_schema()

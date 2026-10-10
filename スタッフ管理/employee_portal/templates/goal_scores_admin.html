@@ -6,7 +6,7 @@
 <table>
   <tr><th>日時</th><th>評価</th><th>コメント</th></tr>
   {% for score, comment, scored_at in scores_by_goal[goal_id] %}
-  <tr><td>{{ scored_at }}</td><td>{{ score }}</td><td>{{ comment }}</td></tr>
+  <tr><td>{{ scored_at | format_datetime }}</td><td>{{ score }}</td><td>{{ comment }}</td></tr>
   {% endfor %}
 </table>
 {% endfor %}

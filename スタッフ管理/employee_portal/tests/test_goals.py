@@ -1,3 +1,5 @@
+import re
+
 import db as db_module
 
 
@@ -205,6 +207,26 @@ def test_invalid_score_in_batch_rejects_whole_submission(client):
     count_a = cur.fetchone()[0]
     conn.close()
     assert count_a == 0
+
+
+def test_score_history_shows_simplified_datetime(client):
+    employee_id = _add_employee_and_login(client)
+    client.get("/logout")
+    _login_admin(client)
+    client.post("/admin/goals/add", data={"employee_id": str(employee_id), "goal_text": "目標X"})
+    (goal_id,) = _goal_ids_for(employee_id)
+
+    client.get("/logout")
+    client.post("/login", data={"password": "general123"})
+    client.post("/select-employee", data={"employee_id": str(employee_id)})
+    client.post("/goals", data={f"score_{goal_id}": "7"}, follow_redirects=True)
+
+    client.get("/logout")
+    _login_admin(client)
+    resp = client.get(f"/admin/goals/{employee_id}/scores")
+
+    assert b"+00:00" not in resp.data
+    assert re.search(rb"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", resp.data)
 
 
 def test_employee_cannot_score_other_employees_goal(client):
